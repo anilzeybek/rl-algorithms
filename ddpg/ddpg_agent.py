@@ -64,27 +64,25 @@ class DDPGAgent:
 
     def _compute_loss_q(self, data):
         state, action, reward, next_state, done = data
-        q = self.critic_network(state, action)
+        Q_current = self.critic_network(state, action)
 
-        # Bellman backup for Q function
         with torch.no_grad():
-            q_pi_targ = self.critic_target(next_state, self.actor_target(next_state))
-            backup = reward + GAMMA * (1 - done) * q_pi_targ
+            Q_target_next = self.critic_target(next_state, self.actor_target(next_state))
+            Q_target = reward + GAMMA * Q_target_next * (1 - done)
 
-        # MSE loss against Bellman backup
-        loss_q = ((q - backup)**2).mean()
-        return loss_q
+        loss = ((Q_current - Q_target) ** 2).mean()
+        return loss
 
     def _compute_loss_pi(self, data):
         state = data[0]
-        q_pi = self.critic_network(state, self.actor_network(state))
-        return -q_pi.mean()
+        Q = self.critic_network(state, self.actor_network(state))
+
+        return -Q.mean()
 
     def _learn(self, data):
-        # First run one gradient descent step for Q.
         self.critic_optimizer.zero_grad()
-        loss_q = self._compute_loss_q(data)
-        loss_q.backward()
+        loss_Q = self._compute_loss_q(data)
+        loss_Q.backward()
         self.critic_optimizer.step()
 
         # Freeze Q-network so you don't waste computational effort
@@ -92,7 +90,6 @@ class DDPGAgent:
         for p in self.critic_network.parameters():
             p.requires_grad = False
 
-        # Next run one gradient descent step for pi.
         self.actor_optimizer.zero_grad()
         loss_pi = self._compute_loss_pi(data)
         loss_pi.backward()
