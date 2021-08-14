@@ -35,7 +35,7 @@ class DQNAgent():
         if np.random.rand() < self.eps:
             return np.random.randint(self.action_size)
         else:
-            state = torch.from_numpy(state).unsqueeze(0)
+            state = torch.from_numpy(state).unsqueeze(0).float()
             action_values = self.policy_network(state)
             return torch.argmax(action_values).item()
 
@@ -57,9 +57,9 @@ class DQNAgent():
         states, actions, rewards, next_states, dones = experiences
 
         Q_current = self.policy_network(states).gather(1, actions)
-
-        Q_targets_next = self.target_network(next_states).max(1)[0].unsqueeze(1)
-        Q_targets = rewards + GAMMA * Q_targets_next * (1 - dones)
+        with torch.no_grad():
+            Q_targets_next = self.target_network(next_states).max(1)[0].unsqueeze(1)
+            Q_targets = rewards + GAMMA * Q_targets_next * (1 - dones)
 
         loss = F.mse_loss(Q_current, Q_targets)
 
