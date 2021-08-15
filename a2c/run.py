@@ -2,11 +2,11 @@ import gym
 import numpy as np
 import sys
 from collections import deque
-from ac_agent import ACAgent
+from a2c_agent import A2CAgent
 
 N_EPISODES = 10000
 env = gym.make('CartPole-v0')
-agent = ACAgent(state_size=env.observation_space.shape[0], action_size=env.action_space.n)
+agent = A2CAgent(state_size=env.observation_space.shape[0], action_size=env.action_space.n)
 
 scores = deque(maxlen=10)
 for i in range(1, N_EPISODES+1):

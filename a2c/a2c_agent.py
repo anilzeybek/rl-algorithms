@@ -10,7 +10,7 @@ LR_CRITIC = 0.0005
 GAMMA = 0.99
 
 
-class ACAgent:
+class A2CAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
@@ -45,8 +45,8 @@ class ACAgent:
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        delta = (v_target - v_current).detach()
+        advantage = (v_target - v_current).detach()
         self.actor_optimizer.zero_grad()
-        actor_loss = -(delta * self.log_prob)
+        actor_loss = -(advantage * self.log_prob)
         actor_loss.backward()
         self.actor_optimizer.step()
