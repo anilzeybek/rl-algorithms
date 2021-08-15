@@ -9,7 +9,7 @@ LR = 0.0005
 GAMMA = 0.99
 
 
-class ReinforceAgent:
+class REINFORCEAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
@@ -20,7 +20,7 @@ class ReinforceAgent:
         self.optimizer = optim.Adam(self.policy.parameters(), lr=LR)
 
     def act(self, state):
-        state = torch.from_numpy(state).unsqueeze(0)
+        state = torch.from_numpy(state).unsqueeze(0).float()
         probabilities = F.softmax(self.policy(state))
 
         action_probs = torch.distributions.Categorical(probabilities)
