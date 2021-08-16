@@ -7,27 +7,26 @@ from replay_buffer import ReplayBuffer
 from copy import deepcopy
 
 
-BUFFER_SIZE = 1000000
+BUFFER_SIZE = 200000
 BATCH_SIZE = 64
 GAMMA = 0.99
 POLYAK = 0.995
-LR_ACTOR = 1e-3
+LR_ACTOR = 1e-4
 LR_CRITIC = 1e-3
 START_STEPS = 10000
-UPDATE_EVERY = 50
+UPDATE_EVERY = 10
 UPDATE_AFTER = 1000
 ACT_NOISE = 0.1
 
 
-# TODO: act_limit is for now scalar, but limits may differ from action to action, so fix it
 class DDPGAgent:
-    def __init__(self, obs_dim, act_dim, act_limit):
+    def __init__(self, obs_dim, act_dim, act_limits):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
-        self.act_limit = act_limit
+        self.act_limits = act_limits
         self.t = 0
 
-        self.actor_network = PolicyNetwork(obs_dim, act_dim, act_limit)
+        self.actor_network = PolicyNetwork(obs_dim, act_dim, act_limits)
         self.actor_target = deepcopy(self.actor_network)
 
         self.critic_network = QNetwork(obs_dim, act_dim)
@@ -44,14 +43,14 @@ class DDPGAgent:
         self.actor_optimizer = optim.Adam(self.actor_network.parameters(), lr=LR_ACTOR)
         self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=LR_CRITIC)
 
-    def act(self, state):
+    def act(self, state, noise=ACT_NOISE):
         if self.t > START_STEPS:
             with torch.no_grad():
                 a = self.actor_network(torch.as_tensor(state, dtype=torch.float32)).numpy()
-                a += ACT_NOISE * np.random.randn(self.act_dim)
-                return np.clip(a, -self.act_limit, self.act_limit)
+                a += noise * np.random.randn(self.act_dim)
+                return np.clip(a, -self.act_limits, self.act_limits)
         else:
-            return np.random.uniform(low=-self.act_limit, high=self.act_limit, size=(self.act_dim,))
+            return np.random.uniform(low=-self.act_limits, high=self.act_limits, size=(self.act_dim,))
 
     def step(self, state, action, reward, next_state, done):
         self.t += 1
