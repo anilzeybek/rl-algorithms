@@ -62,11 +62,10 @@ class DDPGAgent:
         self.trajectory.append((state, action, reward, next_state, done))
         if done:
             for transition in self.trajectory:
-                updated_state = np.concatenate((transition[0][:3], transition[3][:3]))
-                updated_next_state = np.concatenate((transition[3][:3], transition[3][:3]))
+                updated_state = np.concatenate((transition[0][:self.obs_dim//2], transition[3][:self.obs_dim//2]))
+                updated_next_state = np.concatenate((transition[3][:self.obs_dim//2], transition[3][:self.obs_dim//2]))
 
-                breakpoint()
-                self.replay_buffer.store_transition(updated_state, transition[1], 0, updated_next_state, True)
+                self.replay_buffer.store_transition(updated_state, transition[1], 1, updated_next_state, True)
             self.trajectory = []
 
         if self.t >= UPDATE_AFTER and self.t % UPDATE_EVERY == 0:
