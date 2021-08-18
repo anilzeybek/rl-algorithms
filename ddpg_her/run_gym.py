@@ -2,7 +2,7 @@ import gym
 import numpy as np
 import sys
 from collections import deque
-from ddpg_agent import DDPG_HERAgent
+from ddpg_her_agent import DDPG_HERAgent
 
 N_EPISODES = 100000
 env = gym.make('FetchReach-v1')
