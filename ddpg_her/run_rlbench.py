@@ -18,7 +18,7 @@ env = Environment(action_mode, obs_config=obs_config, headless=False)
 env.launch()
 
 task = env.get_task(ReachTarget)
-agent = DDPG_HERAgent(6, 3, 0.01)
+agent = DDPG_HERAgent(6, 3, 0.02)
 
 num_episodes = 100000
 episode_length = 1000
@@ -28,7 +28,7 @@ for i in range(1, num_episodes+1):
     _, obs = task.reset()
     eef = obs.gripper_pose[:3]
     
-    q = Quaternion(axis=(0, 1, 0), degrees=0)
+    q = Quaternion(axis=(1, 0, 0), degrees=0)
     eef_ori = np.array([q.x, q.y, q.z, q.w])
     gripper_state = obs.gripper_open
     
@@ -41,7 +41,7 @@ for i in range(1, num_episodes+1):
     while not done:
         episode_count += 1
 
-        action = agent.act(obs, noise=0.005)
+        action = agent.act(obs, noise=0.02)
         action = np.concatenate((action, eef_ori, [gripper_state]))
         try:
             next_obs, reward, done = task.step(action)
