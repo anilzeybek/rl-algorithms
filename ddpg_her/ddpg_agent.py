@@ -13,13 +13,13 @@ GAMMA = 0.99
 POLYAK = 0.995
 LR_ACTOR = 1e-4
 LR_CRITIC = 1e-3
-START_STEPS = 10000
+START_STEPS = 5000
 UPDATE_EVERY = 10
 UPDATE_AFTER = 1000
 ACT_NOISE = 0.1
 
 
-class DDPGAgent:
+class DDPG_HERAgent:
     def __init__(self, obs_dim, act_dim, act_limits):
         self.obs_dim = obs_dim
         self.act_dim = act_dim

@@ -2,12 +2,12 @@ import gym
 import numpy as np
 import sys
 from collections import deque
-from ddpg_agent import DDPGAgent
+from ddpg_agent import DDPG_HERAgent
 
 N_EPISODES = 100000
 env = gym.make('FetchReach-v1')
 obs_space = env.observation_space['achieved_goal'].shape[0] + env.observation_space['desired_goal'].shape[0] 
-agent = DDPGAgent(obs_space, env.action_space.shape[0], env.action_space.high)
+agent = DDPG_HERAgent(obs_space, env.action_space.shape[0], env.action_space.high)
 
 scores = deque(maxlen=10)
 for i in range(1, N_EPISODES+1):
