@@ -5,7 +5,7 @@ from collections import deque
 from a2c_agent import A2CAgent
 
 N_EPISODES = 10000
-env = gym.make('LunarLander-v2')
+env = gym.make('CartPole-v0')
 agent = A2CAgent(state_size=env.observation_space.shape[0], action_size=env.action_space.n)
 
 scores = deque(maxlen=10)

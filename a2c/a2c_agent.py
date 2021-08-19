@@ -24,7 +24,7 @@ class A2CAgent:
 
     def act(self, state):
         state = torch.from_numpy(state).unsqueeze(0).float()
-        probabilities = F.softmax(self.actor_network(state))
+        probabilities = F.softmax(self.actor_network(state), dim=1)
 
         action_probs = torch.distributions.Categorical(probabilities)
         action = action_probs.sample()
