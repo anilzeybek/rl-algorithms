@@ -6,3 +6,4 @@ Papers to some of the algorithms:
 - Dueling Network Architectures: https://arxiv.org/abs/1511.06581
 - Prioritized Experience Replay: https://arxiv.org/abs/1511.05952
 - Hindsight Experience Replay: https://arxiv.org/abs/1707.01495
+- DDPG: https://arxiv.org/abs/1509.02971
