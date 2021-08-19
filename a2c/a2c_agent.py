@@ -5,8 +5,8 @@ from model import PolicyNetwork, VNetwork
 import torch.optim as optim
 
 
-LR_ACTOR = 0.0005
-LR_CRITIC = 0.0005
+LR_ACTOR = 1e-3
+LR_CRITIC = 1e-3
 GAMMA = 0.99
 
 
