@@ -14,6 +14,9 @@ class A3CAgent(mp.Process):
         self.local_actor_network = PolicyNetwork(state_size, action_size)
         self.global_actor_network = global_actor_network
 
+        self.local_critic_network.load_state_dict(self.global_critic_network.state_dict())
+        self.local_actor_network.load_state_dict(self.global_actor_network.state_dict())
+
         self.critic_optimizer = critic_optimizer
         self.actor_optimizer = actor_optimizer
 
@@ -23,8 +26,8 @@ class A3CAgent(mp.Process):
         self.gamma = 0.99
 
     def act(self, state):
-        state = torch.from_numpy(state).unsqueeze(0).float()
-        probabilities = F.softmax(self.local_actor_network(state), dim=1)
+        state = torch.from_numpy(state).float()
+        probabilities = F.softmax(self.local_actor_network(state), dim=0)
 
         action_probs = torch.distributions.Categorical(probabilities)
         action = action_probs.sample()
@@ -51,8 +54,8 @@ class A3CAgent(mp.Process):
             print('episode ', self.global_ep_idx.value, ' score %.1f' % score)
 
     def _step(self, state, action, reward, next_state, done):
-        state = torch.from_numpy(state).unsqueeze(0).float()
-        next_state = torch.from_numpy(next_state).unsqueeze(0).float()
+        state = torch.from_numpy(state).float()
+        next_state = torch.from_numpy(next_state).float()
 
         v_current = self.local_critic_network(state)
         with torch.no_grad():

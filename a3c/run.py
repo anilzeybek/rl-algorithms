@@ -6,7 +6,7 @@ from a3c_agent import A3CAgent
 
 
 N_EPISODES = 50000
-LR = 1e-4
+LR = 1e-7
 
 if __name__ == '__main__':
     env = gym.make('CartPole-v0')
