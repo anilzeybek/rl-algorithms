@@ -23,8 +23,8 @@ class A2CAgent:
         self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=LR_CRITIC)
 
     def act(self, state):
-        state = torch.from_numpy(state).unsqueeze(0).float()
-        probabilities = F.softmax(self.actor_network(state), dim=1)
+        state = torch.from_numpy(state).float()
+        probabilities = F.softmax(self.actor_network(state), dim=0)
 
         action_probs = torch.distributions.Categorical(probabilities)
         action = action_probs.sample()
@@ -33,8 +33,8 @@ class A2CAgent:
         return action.item()
 
     def step(self, state, action, reward, next_state, done):
-        state = torch.from_numpy(state).unsqueeze(0).float()
-        next_state = torch.from_numpy(next_state).unsqueeze(0).float()
+        state = torch.from_numpy(state).float()
+        next_state = torch.from_numpy(next_state).float()
 
         v_current = self.critic_network(state)
         with torch.no_grad():

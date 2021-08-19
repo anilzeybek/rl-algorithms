@@ -20,8 +20,8 @@ class REINFORCEAgent:
         self.optimizer = optim.Adam(self.policy.parameters(), lr=LR)
 
     def act(self, state):
-        state = torch.from_numpy(state).unsqueeze(0).float()
-        probabilities = F.softmax(self.policy(state))
+        state = torch.from_numpy(state).float()
+        probabilities = F.softmax(self.policy(state), dim=0)
 
         action_probs = torch.distributions.Categorical(probabilities)
         action = action_probs.sample()
