@@ -7,20 +7,20 @@ from replay_buffer import ReplayBuffer
 from copy import deepcopy
 
 
-BUFFER_SIZE = 200000
+BUFFER_SIZE = 500000
 BATCH_SIZE = 64
 GAMMA = 0.99
 POLYAK = 0.995
 LR_ACTOR = 1e-4
 LR_CRITIC = 1e-3
-START_STEPS = 50000
+START_STEPS = 100000
 UPDATE_EVERY = 10   
 UPDATE_AFTER = 1000
 ACT_NOISE = 0.1
 
 
 class DDPG_HERAgent:
-    def __init__(self, obs_dim, act_dim, act_limits):
+    def __init__(self, obs_dim, act_dim, act_limits, experiment=None):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.act_limits = act_limits
@@ -43,6 +43,21 @@ class DDPG_HERAgent:
 
         self.actor_optimizer = optim.Adam(self.actor_network.parameters(), lr=LR_ACTOR)
         self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=LR_CRITIC)
+
+
+        self.experiment = experiment
+        if self.experiment:
+            self.experiment.log_parameters({
+                "buffer_size": BUFFER_SIZE,
+                "batch_size": BATCH_SIZE,
+                "gamma": GAMMA,
+                "polyak": POLYAK,
+                "lr_actor": LR_ACTOR,
+                "lr_critic": LR_CRITIC,
+                "start_steps": START_STEPS,
+                "update_every": UPDATE_EVERY,
+                "update_after": UPDATE_AFTER
+            })
 
     def act(self, state, noise=ACT_NOISE):
         if self.t > START_STEPS:
@@ -82,13 +97,18 @@ class DDPG_HERAgent:
             Q_target = reward + GAMMA * Q_target_next * (1 - done)
 
         loss = ((Q_current - Q_target) ** 2).mean()
+        if self.experiment:
+            self.experiment.log_metric('loss_Q', loss)
         return loss
 
     def _compute_loss_pi(self, data):
         state = data[0]
         Q = self.critic_network(state, self.actor_network(state))
 
-        return -Q.mean()
+        loss = -Q.mean()
+        if self.experiment:
+            self.experiment.log_metric('loss_pi', loss)
+        return loss
 
     def _learn(self, data):
         self.critic_optimizer.zero_grad()
