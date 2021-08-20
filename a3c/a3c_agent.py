@@ -64,6 +64,7 @@ class A3CAgent(mp.Process):
         self.critic_optimizer.zero_grad()
         critic_loss = (v_target - v_current)**2
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.local_critic_network.parameters(), 50)
         for local_param, global_param in zip(self.local_critic_network.parameters(), self.global_critic_network.parameters()):
             global_param._grad = local_param.grad
         self.critic_optimizer.step()
@@ -72,6 +73,7 @@ class A3CAgent(mp.Process):
         self.actor_optimizer.zero_grad()
         actor_loss = -(advantage * self.log_prob)
         actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.local_actor_network.parameters(), 50)
         for local_param, global_param in zip(self.local_actor_network.parameters(), self.global_actor_network.parameters()):
             global_param._grad = local_param.grad
         self.actor_optimizer.step()
