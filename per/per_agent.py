@@ -3,17 +3,16 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from model import QNetwork
-from prioritized_replay_buffer import PrioritizedReplayBuffer
+from prioritized_replay_buffer import Memory
 
 
 BUFFER_SIZE = 10000
 BATCH_SIZE = 64
 GAMMA = 0.99
 SYNC_TARGET_EVERY = 1000
-UPDATE_PRIORITIES_EVERY = 20
 LR = 1e-3
 UPDATE_EVERY = 4
-EPS_START = 1.0  # EPS as in the epsilon-greedy
+EPS_START = 1.0
 EPS_END = 0.01
 EPS_DECAY = 0.995
 PRIORITIZATION_FACTOR = 0.5
@@ -29,7 +28,7 @@ class PERAgent():
         self.optimizer = optim.Adam(self.Q_network.parameters(), lr=LR)
 
         self.eps = EPS_START
-        self.memory = PrioritizedReplayBuffer(BUFFER_SIZE, PRIORITIZATION_FACTOR)
+        self.memory = Memory(BUFFER_SIZE)
         self.t_step = 0
         self.update_step = 0
         self.learn_count = 0
@@ -45,29 +44,36 @@ class PERAgent():
             return torch.argmax(action_values).item()
 
     def step(self, state, action, reward, next_state, done):
-        self.memory.store_transition(state, action, reward, next_state, done, self.max_priority)
+        self._append_experience((state, action, reward, next_state, done))
 
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
         if self.t_step == 0 and len(self.memory) > BATCH_SIZE:
-            experiences = self.memory.sample(BATCH_SIZE)
-            self._learn(experiences)
-
-        self.update_step = (self.update_step + 1) % UPDATE_PRIORITIES_EVERY
-        if self.update_step == 0:
-            self.memory.update_probabilities()
+            experiences, idxs, is_weights = self.memory.sample(BATCH_SIZE)
+            self._learn(experiences, idxs, is_weights)
 
         if done:
             self._update_eps()
 
+    def _append_experience(self, experience):
+        state, action, reward, next_state, done = experience
+        with torch.no_grad():
+            curr = self.Q_network(torch.from_numpy(state))[action]
+
+            target_next = self.target_network(torch.from_numpy(next_state)).max()
+            target = reward + GAMMA * target_next * (1 - done)
+
+            td_error = abs(curr - target)
+            self.memory.add(td_error, experience)
+
     def _update_eps(self):
         self.eps = max(EPS_END, EPS_DECAY * self.eps)
 
-    def _learn(self, experiences):
-        states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float()
-        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long()
-        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float()
-        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float()
-        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float()
+    def _learn(self, experiences, idxs, is_weights):
+        states = torch.from_numpy(np.vstack([e[0] for e in experiences if e is not None])).float()
+        actions = torch.from_numpy(np.vstack([e[1] for e in experiences if e is not None])).long()
+        rewards = torch.from_numpy(np.vstack([e[2] for e in experiences if e is not None])).float()
+        next_states = torch.from_numpy(np.vstack([e[3] for e in experiences if e is not None])).float()
+        dones = torch.from_numpy(np.vstack([e[4] for e in experiences if e is not None]).astype(np.uint8)).float()
 
         Q_current = self.Q_network(states).gather(1, actions)
         with torch.no_grad():
@@ -75,17 +81,14 @@ class PERAgent():
             Q_target_next = self.target_network(next_states).gather(1, a)
             Q_target = rewards + GAMMA * Q_target_next * (1 - dones)
 
-        loss = F.mse_loss(Q_current, Q_target)
-        # TODO: insert importance sampling here (change 'loss')
+            errors = (Q_target - Q_current).abs().numpy()
 
-        for idx, e in enumerate(experiences):
-            with torch.no_grad():
-                new_priority = (Q_target[idx] - Q_current[idx]).abs().numpy()[0]
-                e.update_priority(new_priority)
-
-                self.max_priority = max(self.max_priority, new_priority)
+        for i in range(BATCH_SIZE):
+            idx = idxs[i]
+            self.memory.update(idx, errors[i])
 
         self.optimizer.zero_grad()
+        loss = (torch.FloatTensor(is_weights) * F.mse_loss(Q_current, Q_target)).mean()
         loss.backward()
         self.optimizer.step()
 
