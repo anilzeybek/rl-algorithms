@@ -24,9 +24,9 @@ class DQN_HERAgent():
         self.action_size = action_size
         self.goal_reward = goal_reward
 
-        self.policy_network = QNetwork(state_size, action_size)
+        self.Q_network = QNetwork(state_size, action_size)
         self.target_network = QNetwork(state_size, action_size)
-        self.optimizer = optim.Adam(self.policy_network.parameters(), lr=LR)
+        self.optimizer = optim.Adam(self.Q_network.parameters(), lr=LR)
 
         self.eps = EPS_START
         self.memory = ReplayBuffer(BUFFER_SIZE)
@@ -39,7 +39,7 @@ class DQN_HERAgent():
             return np.random.randint(self.action_size)
         else:
             state = torch.from_numpy(state).unsqueeze(0).to(torch.float)
-            action_values = self.policy_network(state)
+            action_values = self.Q_network(state)
             return torch.argmax(action_values).item()
 
     def step(self, state, action, reward, next_state, done):
@@ -69,12 +69,13 @@ class DQN_HERAgent():
     def _learn(self, experiences):
         states, actions, rewards, next_states, dones = experiences
 
-        Q_current = self.policy_network(states).gather(1, actions)
+        Q_current = self.Q_network(states).gather(1, actions)
 
-        Q_targets_next = self.target_network(next_states).max(1)[0].unsqueeze(1)
-        Q_targets = rewards + GAMMA * Q_targets_next * (1 - dones)
+        with torch.no_grad():
+            Q_target_next = self.target_network(next_states).max(1)[0].unsqueeze(1)
+            Q_target = rewards + GAMMA * Q_target_next * (1 - dones)
 
-        loss = F.mse_loss(Q_current, Q_targets)
+        loss = F.mse_loss(Q_current, Q_target)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -82,4 +83,4 @@ class DQN_HERAgent():
 
         self.learn_count += 1
         if self.learn_count % SYNC_TARGET_EVERY == 0:
-            self.target_network.load_state_dict(self.policy_network.state_dict())
+            self.target_network.load_state_dict(self.Q_network.state_dict())

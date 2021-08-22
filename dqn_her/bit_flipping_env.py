@@ -25,12 +25,12 @@ class BitFlippingEnv(gym.Env):
     def step(self, action):
         self.state[action] = 1 - self.state[action]
         done = False
-        reward = -1
+        reward = 0
 
         self.t += 1
         if np.array_equal(self.state, self.goal):
             done = True
-            reward = 0
+            reward = 1
         elif self.t == self.n_bits:  # end of episode without success
             done = True
 

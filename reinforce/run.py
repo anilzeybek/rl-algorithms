@@ -5,7 +5,7 @@ from collections import deque
 from REINFORCE_agent import REINFORCEAgent
 
 N_EPISODES = 10000
-env = gym.make('CartPole-v0')
+env = gym.make('LunarLander-v2')
 agent = REINFORCEAgent(state_size=env.observation_space.shape[0], action_size=env.action_space.n)
 
 scores = deque(maxlen=10)

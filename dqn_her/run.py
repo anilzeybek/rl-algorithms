@@ -5,9 +5,9 @@ from collections import deque
 from dqn_her_agent import DQN_HERAgent
 from bit_flipping_env import BitFlippingEnv
 
-N_EPISODES = 10000
-env = BitFlippingEnv(10)
-agent = DQN_HERAgent(state_size=env.observation_space.shape[0], action_size=env.action_space.n, goal_reward=0)
+N_EPISODES = 1000000
+env = BitFlippingEnv(15)
+agent = DQN_HERAgent(state_size=env.observation_space.shape[0], action_size=env.action_space.n, goal_reward=1)
 
 scores = deque(maxlen=10)
 for i in range(1, N_EPISODES+1):
