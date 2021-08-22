@@ -7,23 +7,22 @@ from replay_buffer import ReplayBuffer
 from copy import deepcopy
 
 
-BUFFER_SIZE = 500000
-BATCH_SIZE = 64
-GAMMA = 0.99
-POLYAK = 0.995
-LR_ACTOR = 1e-4
-LR_CRITIC = 1e-3
-START_STEPS = 100000
-UPDATE_EVERY = 10   
-UPDATE_AFTER = 1000
-ACT_NOISE = 0.1
-
-
 class DDPG_HERAgent:
-    def __init__(self, obs_dim, act_dim, act_limits, experiment=None):
+    def __init__(self, obs_dim, act_dim, act_limits, buffer_size, batch_size, gamma, polyak, lr_actor, lr_critic, start_steps, update_every, update_after, experiment):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.act_limits = act_limits
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.polyak = polyak
+        self.lr_actor = lr_actor
+        self.lr_critic = lr_critic
+        self.start_steps = start_steps
+        self.update_every = update_every
+        self.update_after = update_after
+        self.experiment = experiment
+
         self.t = 0
 
         self.actor_network = PolicyNetwork(obs_dim, act_dim, act_limits)
@@ -39,34 +38,25 @@ class DDPG_HERAgent:
         for p in self.critic_target.parameters():
             p.requires_grad = False
 
-        self.replay_buffer = ReplayBuffer(BUFFER_SIZE)
+        self.replay_buffer = ReplayBuffer(self.buffer_size)
 
-        self.actor_optimizer = optim.Adam(self.actor_network.parameters(), lr=LR_ACTOR)
-        self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=LR_CRITIC)
+        self.actor_optimizer = optim.Adam(self.actor_network.parameters(), lr=self.lr_actor)
+        self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=self.lr_critic)
 
-
-        self.experiment = experiment
+    def act(self, state, noise):
         if self.experiment:
-            self.experiment.log_parameters({
-                "buffer_size": BUFFER_SIZE,
-                "batch_size": BATCH_SIZE,
-                "gamma": GAMMA,
-                "polyak": POLYAK,
-                "lr_actor": LR_ACTOR,
-                "lr_critic": LR_CRITIC,
-                "start_steps": START_STEPS,
-                "update_every": UPDATE_EVERY,
-                "update_after": UPDATE_AFTER
-            })
+            if self.t > self.start_steps:
+                with torch.no_grad():
+                    a = self.actor_network(torch.as_tensor(state, dtype=torch.float32)).numpy()
+                    a += noise * np.random.randn(self.act_dim)
+                    return np.clip(a, -self.act_limits, self.act_limits)
+            else:
+                return np.random.uniform(low=-self.act_limits, high=self.act_limits, size=(self.act_dim,))
 
-    def act(self, state, noise=ACT_NOISE):
-        if self.t > START_STEPS:
-            with torch.no_grad():
-                a = self.actor_network(torch.as_tensor(state, dtype=torch.float32)).numpy()
-                a += noise * np.random.randn(self.act_dim)
-                return np.clip(a, -self.act_limits, self.act_limits)
         else:
-            return np.random.uniform(low=-self.act_limits, high=self.act_limits, size=(self.act_dim,))
+            with torch.no_grad():
+                return self.actor_network(torch.as_tensor(state, dtype=torch.float32)).numpy()
+
 
     def step(self, state, action, reward, next_state, done):
         self.t += 1
@@ -83,10 +73,18 @@ class DDPG_HERAgent:
                 self.replay_buffer.store_transition(updated_state, transition[1], 1, updated_next_state, True)
             self.trajectory = []
 
-        if self.t >= UPDATE_AFTER and self.t % UPDATE_EVERY == 0:
-            for _ in range(UPDATE_EVERY):
-                batch = self.replay_buffer.sample(BATCH_SIZE)
+        if self.t >= self.update_after and self.t % self.update_every == 0:
+            for _ in range(self.update_every):
+                batch = self.replay_buffer.sample(self.batch_size)
                 self._learn(data=batch)
+
+    def save_parameters(self):
+        torch.save(self.critic_network.state_dict(), "weights/critic.pt")
+        torch.save(self.actor_network.state_dict(), "weights/actor.pt")
+
+    def load_parameters(self):
+        self.critic_network.load_state_dict(torch.load("weights/critic.pt"))
+        self.actor_network.load_state_dict(torch.load("weights/actor.pt"))
 
     def _compute_loss_q(self, data):
         state, action, reward, next_state, done = data
@@ -94,7 +92,7 @@ class DDPG_HERAgent:
 
         with torch.no_grad():
             Q_target_next = self.critic_target(next_state, self.actor_target(next_state))
-            Q_target = reward + GAMMA * Q_target_next * (1 - done)
+            Q_target = reward + self.gamma * Q_target_next * (1 - done)
 
         loss = ((Q_current - Q_target) ** 2).mean()
         if self.experiment:
@@ -133,9 +131,9 @@ class DDPG_HERAgent:
         # Finally, update target networks by polyak averaging.
         with torch.no_grad():
             for p, p_targ in zip(self.actor_network.parameters(), self.actor_target.parameters()):
-                p_targ.data.mul_(POLYAK)
-                p_targ.data.add_((1 - POLYAK) * p.data)
+                p_targ.data.mul_(self.polyak)
+                p_targ.data.add_((1 - self.polyak) * p.data)
 
             for p, p_targ in zip(self.critic_network.parameters(), self.critic_target.parameters()):
-                p_targ.data.mul_(POLYAK)
-                p_targ.data.add_((1 - POLYAK) * p.data)
+                p_targ.data.mul_(self.polyak)
+                p_targ.data.add_((1 - self.polyak) * p.data)
