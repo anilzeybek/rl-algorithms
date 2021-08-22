@@ -15,7 +15,6 @@ UPDATE_EVERY = 4
 EPS_START = 1.0
 EPS_END = 0.01
 EPS_DECAY = 0.995
-PRIORITIZATION_FACTOR = 0.5
 
 
 class PERAgent():
@@ -32,8 +31,6 @@ class PERAgent():
         self.t_step = 0
         self.update_step = 0
         self.learn_count = 0
-
-        self.max_priority = 1
 
     def act(self, state):
         if np.random.rand() < self.eps:
