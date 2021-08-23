@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from model import QNetwork
+from dueling_model import DuelingNetwork
 from prioritized_replay_buffer import Memory
 
 
@@ -17,14 +17,14 @@ EPS_END = 0.01
 EPS_DECAY = 0.995
 
 
-class PERAgent():
+class DDQN_DuelingPerAgent():
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
 
-        self.Q_network = QNetwork(state_size, action_size)
-        self.target_network = QNetwork(state_size, action_size)
-        self.optimizer = optim.Adam(self.Q_network.parameters(), lr=LR)
+        self.dueling_network = DuelingNetwork(state_size, action_size)
+        self.target_network = DuelingNetwork(state_size, action_size)
+        self.optimizer = optim.Adam(self.dueling_network.parameters(), lr=LR)
 
         self.eps = EPS_START
         self.memory = Memory(BUFFER_SIZE)
@@ -36,7 +36,7 @@ class PERAgent():
             return np.random.randint(self.action_size)
         else:
             state = torch.from_numpy(state).unsqueeze(0)
-            action_values = self.Q_network(state)
+            action_values = self.dueling_network(state)
             return torch.argmax(action_values).item()
 
     def step(self, state, action, reward, next_state, done):
@@ -53,9 +53,9 @@ class PERAgent():
     def _append_experience(self, experience):
         state, action, reward, next_state, done = experience
         with torch.no_grad():
-            curr = self.Q_network(torch.from_numpy(state))[action]
+            curr = self.dueling_network(torch.from_numpy(state).unsqueeze(0)).squeeze(0)[action]
 
-            target_next = self.target_network(torch.from_numpy(next_state)).max()
+            target_next = self.target_network(torch.from_numpy(next_state).unsqueeze(0)).max()
             target = reward + GAMMA * target_next * (1 - done)
 
             td_error = abs(curr - target)
@@ -71,9 +71,9 @@ class PERAgent():
         next_states = torch.from_numpy(np.vstack([e[3] for e in experiences if e is not None])).float()
         dones = torch.from_numpy(np.vstack([e[4] for e in experiences if e is not None]).astype(np.uint8)).float()
 
-        Q_current = self.Q_network(states).gather(1, actions)
+        Q_current = self.dueling_network(states).gather(1, actions)
         with torch.no_grad():
-            a = self.Q_network(next_states).argmax(1).unsqueeze(1)
+            a = self.dueling_network(next_states).argmax(1).unsqueeze(1)
             Q_target_next = self.target_network(next_states).gather(1, a)
             Q_target = rewards + GAMMA * Q_target_next * (1 - dones)
 
@@ -90,4 +90,4 @@ class PERAgent():
 
         self.learn_count += 1
         if self.learn_count % SYNC_TARGET_EVERY == 0:
-            self.target_network.load_state_dict(self.Q_network.state_dict())
+            self.target_network.load_state_dict(self.dueling_network.state_dict())
