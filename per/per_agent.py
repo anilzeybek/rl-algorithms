@@ -6,7 +6,7 @@ from model import QNetwork
 from prioritized_replay_buffer import Memory
 
 
-BUFFER_SIZE = 100000
+BUFFER_SIZE = 10000
 BATCH_SIZE = 64
 GAMMA = 0.99
 SYNC_TARGET_EVERY = 1000
