@@ -6,31 +6,43 @@ from agent import Agent
 
 BUFFER_SIZE = 100000
 BATCH_SIZE = 64
-START_STEPS = 5000
+START_STEPS = 1000
 UPDATE_EVERY = 10
-UPDATE_AFTER = 1000
+UPDATE_AFTER = 100
 
 
 class MADDPG:
-    def __init__(self, n_agents, obs_dims, n_actions):
-        self.n_agents = n_agents
-        self.obs_dims = obs_dims
+    def __init__(self, agent_names, obs_dims, n_actions):
+        self.n_agents = len(agent_names)
+        self.obs_dims = [obs_dims[key].shape[0] for key in obs_dims]
         self.n_actions = n_actions
         self.t = 0
 
-        self.replay_buffer = MAReplayBuffer(BUFFER_SIZE, n_agents)
-        self.agents = [Agent(i, n_agents, sum(obs_dims), obs_dims[i], n_actions) for i in range(n_agents)]
+        self.replay_buffer = MAReplayBuffer(BUFFER_SIZE, self.n_agents)
+        self.agents = [Agent(name, self.n_agents, sum(self.obs_dims), self.obs_dims[i], n_actions) for i, name in enumerate(agent_names)]
 
-    def act(self, agent_id, obs):
-        if self.t > START_STEPS:
-            action = self.agents[agent_id].choose_action(obs)
-        else:
-            action = np.random.randint(self.n_actions)
+    def _flatten_data(self, x):
+        values = np.array(list(x.values()))
+        return values
 
-        return action
+    def act(self, observations):
+        actions = {}
+        for agent in self.agents:
+            if self.t > START_STEPS:
+                actions[agent.name] = agent.choose_action(observations[agent.name])
+            else:
+                actions[agent.name] = np.random.randint(self.n_actions)
+
+        return actions
 
     def step(self, observations, actions, rewards, next_observations, dones):
         self.t += 1
+
+        observations = self._flatten_data(observations)
+        actions = self._flatten_data(actions)
+        rewards = self._flatten_data(rewards)
+        next_observations = self._flatten_data(next_observations)
+        dones = self._flatten_data(dones)
 
         self.replay_buffer.store_transition(observations, actions, rewards, next_observations, dones)
         if self.t >= UPDATE_AFTER and self.t % UPDATE_EVERY == 0:

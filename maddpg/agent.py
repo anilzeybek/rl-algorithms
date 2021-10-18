@@ -11,8 +11,8 @@ POLYAK = 0.995
 
 
 class Agent:
-    def __init__(self, agent_id, n_agents, state_dim, obs_dim, n_actions):
-        self.agent_id = agent_id
+    def __init__(self, name, n_agents, state_dim, obs_dim, n_actions):
+        self.name = name
 
         self.critic_network = QNetwork(state_dim, n_agents)
         self.critic_target = deepcopy(self.critic_network)
