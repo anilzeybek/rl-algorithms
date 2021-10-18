@@ -4,9 +4,9 @@ from ma_replay_buffer import MAReplayBuffer
 from agent import Agent
 
 
-BUFFER_SIZE = 200000
+BUFFER_SIZE = 100000
 BATCH_SIZE = 64
-START_STEPS = 25000
+START_STEPS = 5000
 UPDATE_EVERY = 10
 UPDATE_AFTER = 1000
 
@@ -44,14 +44,10 @@ class MADDPG:
         next_states = torch.cat(next_observations, axis=1)
         actions = torch.cat(actions, axis=1)
 
-        all_agents_actor = []
         all_agents_target_actor = []
         for i, agent in enumerate(self.agents):
-            all_agents_actor.append(agent.actor_network(observations[i]))
             all_agents_target_actor.append(agent.actor_target(next_observations[i]))
-
         all_agents_target_actor = torch.cat(all_agents_target_actor, axis=1)
-        all_agents_actor = torch.cat(all_agents_actor, axis=1)
 
         for i, agent in enumerate(self.agents):
             agent.critic_optimizer.zero_grad()

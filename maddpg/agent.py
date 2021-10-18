@@ -30,14 +30,10 @@ class Agent:
         self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=LR_CRITIC)
 
     def choose_action(self, obs):
-        obs = torch.tensor([obs], dtype=torch.float)
-        action = self.actor_network(obs)
-
-        noise = torch.rand()
-        action += noise
-
         with torch.no_grad():
-            return action
+            obs = torch.tensor([obs], dtype=torch.float)
+            action = self.actor_network(obs)
+            return int(action.item())
 
     def compute_loss_q(self, state, action, reward, next_state, done, all_agents_target_actor):
         Q_current = self.critic_network(state, action)

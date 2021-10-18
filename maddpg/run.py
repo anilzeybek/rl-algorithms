@@ -33,7 +33,7 @@ for i in range(50000):
             continue
 
         env.step(action)
-        if i > 5000:
+        if i > 10000:
             env.render()
 
     if any(dones):
@@ -42,4 +42,4 @@ for i in range(50000):
     if i > 0:
         maddpg.step(observations, actions, rewards, next_observations, dones)
 
-    print(f"{i}: {sum(rewards):.2f}")
+    print(f"{i}")
