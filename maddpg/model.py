@@ -7,10 +7,10 @@ import torch.nn.functional as F
 
 
 class QNetwork(nn.Module):
-    def __init__(self, state_size, n_agents):
+    def __init__(self, state_size, action_size, n_agents):
         super(QNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_size + n_agents, 64)
+        self.fc1 = nn.Linear(state_size + action_size*n_agents, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 1)
 
@@ -28,13 +28,14 @@ class QNetwork(nn.Module):
 
 
 class PolicyNetwork(nn.Module):
-    def __init__(self, obs_size, n_actions):
+    def __init__(self, obs_size, action_size):
         super(PolicyNetwork, self).__init__()
-        self.n_actions = n_actions
 
         self.fc1 = nn.Linear(obs_size, 64)
         self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 1)
+        self.fc3 = nn.Linear(64, action_size)
+        self.out = nn.Sigmoid()
+
 
     def forward(self, obs):
         x = self.fc1(obs)
@@ -44,5 +45,5 @@ class PolicyNetwork(nn.Module):
         x = F.relu(x)
 
         x = self.fc3(x)
-        # TODO: burası hatalı olabilir
-        return torch.round(torch.sigmoid(x) * self.n_actions)
+        # TODO: check here!!!
+        return self.out(x)

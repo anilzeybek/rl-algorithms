@@ -1,13 +1,13 @@
 from pettingzoo.mpe import simple_adversary_v2
 from maddpg import MADDPG
-from time import sleep
 import sys
+from time import sleep
 
 load_models = len(sys.argv) >= 2 and sys.argv[1] == "load"
 eval_mode = len(sys.argv) >= 3 and sys.argv[1] == "load" and sys.argv[2] == "eval"
 
-env = simple_adversary_v2.parallel_env()
-maddpg = MADDPG(env.possible_agents, env.observation_spaces, 5, load_models)
+env = simple_adversary_v2.parallel_env(continuous_actions=True)
+maddpg = MADDPG(env.possible_agents, env.observation_spaces, env.action_spaces, load_models)
 n_episodes = 100000
 
 print("MODE: ", "eval" if eval_mode else "train")

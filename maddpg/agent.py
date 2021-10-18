@@ -11,11 +11,11 @@ POLYAK = 0.995
 
 
 class Agent:
-    def __init__(self, name, n_agents, state_dim, obs_dim, n_actions, load_models=False):
+    def __init__(self, name, n_agents, state_dim, obs_dim, action_size, load_models=False):
         self.name = name
 
-        self.critic_network = QNetwork(state_dim, n_agents)
-        self.actor_network = PolicyNetwork(obs_dim, n_actions)
+        self.critic_network = QNetwork(state_dim, action_size, n_agents)
+        self.actor_network = PolicyNetwork(obs_dim, action_size)
 
         if load_models:
             self.load_parameters()
@@ -36,7 +36,7 @@ class Agent:
         with torch.no_grad():
             obs = torch.tensor([obs], dtype=torch.float)
             action = self.actor_network(obs)
-            return int(action.item())
+            return action.numpy().squeeze()
 
     def compute_loss_q(self, state, action, reward, next_state, done, all_agents_target_actor):
         Q_current = self.critic_network(state, action)
