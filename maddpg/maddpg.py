@@ -12,23 +12,19 @@ UPDATE_AFTER = 100
 
 
 class MADDPG:
-    def __init__(self, agent_names, obs_dims, n_actions):
+    def __init__(self, agent_names, obs_dims, n_actions, load_models):
         self.n_agents = len(agent_names)
         self.obs_dims = [obs_dims[key].shape[0] for key in obs_dims]
         self.n_actions = n_actions
         self.t = 0
 
         self.replay_buffer = MAReplayBuffer(BUFFER_SIZE, self.n_agents)
-        self.agents = [Agent(name, self.n_agents, sum(self.obs_dims), self.obs_dims[i], n_actions) for i, name in enumerate(agent_names)]
+        self.agents = [Agent(name, self.n_agents, sum(self.obs_dims), self.obs_dims[i], n_actions, load_models) for i, name in enumerate(agent_names)]
 
-    def _flatten_data(self, x):
-        values = np.array(list(x.values()))
-        return values
-
-    def act(self, observations):
+    def act(self, observations, eval_mode=False):
         actions = {}
         for agent in self.agents:
-            if self.t > START_STEPS:
+            if self.t > START_STEPS or eval_mode:
                 actions[agent.name] = agent.choose_action(observations[agent.name])
             else:
                 actions[agent.name] = np.random.randint(self.n_actions)
@@ -38,17 +34,21 @@ class MADDPG:
     def step(self, observations, actions, rewards, next_observations, dones):
         self.t += 1
 
-        observations = self._flatten_data(observations)
-        actions = self._flatten_data(actions)
-        rewards = self._flatten_data(rewards)
-        next_observations = self._flatten_data(next_observations)
-        dones = self._flatten_data(dones)
+        observations = list(observations.values())
+        actions = list(actions.values())
+        rewards = list(rewards.values())
+        next_observations = list(next_observations.values())
+        dones = list(dones.values())
 
         self.replay_buffer.store_transition(observations, actions, rewards, next_observations, dones)
         if self.t >= UPDATE_AFTER and self.t % UPDATE_EVERY == 0:
             for _ in range(UPDATE_EVERY):
                 batch = self.replay_buffer.sample(BATCH_SIZE)
                 self._learn(batch)
+
+    def save_models(self):
+        for agent in self.agents:
+            agent.save_parameters()
 
     def _learn(self, data):
         observations, actions, rewards, next_observations, dones = data

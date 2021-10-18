@@ -11,13 +11,16 @@ POLYAK = 0.995
 
 
 class Agent:
-    def __init__(self, name, n_agents, state_dim, obs_dim, n_actions):
+    def __init__(self, name, n_agents, state_dim, obs_dim, n_actions, load_models=False):
         self.name = name
 
         self.critic_network = QNetwork(state_dim, n_agents)
-        self.critic_target = deepcopy(self.critic_network)
-
         self.actor_network = PolicyNetwork(obs_dim, n_actions)
+
+        if load_models:
+            self.load_parameters()
+
+        self.critic_target = deepcopy(self.critic_network)
         self.actor_target = deepcopy(self.actor_network)
 
         for p in self.critic_target.parameters():
@@ -57,3 +60,11 @@ class Agent:
             for p, p_targ in zip(self.critic_network.parameters(), self.critic_target.parameters()):
                 p_targ.data.mul_(POLYAK)
                 p_targ.data.add_((1 - POLYAK) * p.data)
+
+    def load_parameters(self):
+        self.critic_network.load_state_dict(torch.load(f"parameters/{self.name}_critic.pt"))
+        self.actor_network.load_state_dict(torch.load(f"parameters/{self.name}_actor.pt"))
+
+    def save_parameters(self):
+        torch.save(self.critic_network.state_dict(), f"parameters/{self.name}_critic.pt")
+        torch.save(self.actor_network.state_dict(), f"parameters/{self.name}_actor.pt")
