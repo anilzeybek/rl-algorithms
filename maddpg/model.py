@@ -2,9 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# env used for this algorithm has discrete actions!!!
-# this is why QNetwork only takes n_agents
-
 
 class QNetwork(nn.Module):
     def __init__(self, state_size, action_size, n_agents):
@@ -35,7 +32,6 @@ class PolicyNetwork(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, action_size)
         self.out = nn.Sigmoid()
-
 
     def forward(self, obs):
         x = self.fc1(obs)
