@@ -1,7 +1,5 @@
-from typing import Deque
 import gym
 import numpy as np
-from collections import deque
 from ddpg_agent import DDPGAgent
 import random
 import torch
@@ -9,8 +7,27 @@ import torch
 N_EPISODES = 500
 
 
+def eval(env: gym.Env, agent: DDPGAgent) -> float:
+    scores = []
+
+    for _ in range(3):
+        state = env.reset()
+        done = False
+        score = 0
+
+        while not done:
+            action = agent.act(state, train_mode=False)
+            next_state, reward, done, _ = env.step(action)
+
+            state = next_state
+            score += reward
+
+        scores.append(score)
+    return np.mean(scores)
+
+
 def main():
-    env = gym.make('LunarLanderContinuous-v2')
+    env = gym.make('Pendulum-v1')
 
     seed = 0
     random.seed(seed)
@@ -19,9 +36,6 @@ def main():
     torch.manual_seed(seed)
 
     agent = DDPGAgent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.low[0], env.action_space.high[0])
-
-    max_score = -np.inf
-    scores: Deque[float] = deque(maxlen=10)
     for i in range(1, N_EPISODES+1):
         state = env.reset()
         score = 0
@@ -32,17 +46,10 @@ def main():
 
             agent.step(state, action, reward, next_state, done)
             state = next_state
-            score += reward
 
-        if score > max_score:
-            max_score = score
-
-        scores.append(score)
-        mean_score = np.mean(scores)
-
-        print(f'\rEpisode: {i}\tAverage Score: {mean_score:.2f}', end="")
+        print(f'\rEpisode: {i}', end="")
         if i % 10 == 0:
-            print(f'\rEpisode: {i}\tAverage Score: {mean_score:.2f}\tRecord Score: {max_score:.2f}')
+            print(f'\rEpisode: {i}\tEval score: {eval(env, agent):.2f}')
 
     while True:
         state = env.reset()
