@@ -26,13 +26,13 @@ def eval(env: gym.Env, agent: DDPGAgent) -> float:
     return np.mean(scores)
 
 
-def main():
+def main() -> None:
     env = gym.make('Pendulum-v1')
 
     seed = 0
     random.seed(seed)
     np.random.seed(seed)
-    env.seed(0)
+    env.seed(seed)
     torch.manual_seed(seed)
 
     agent = DDPGAgent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.low[0], env.action_space.high[0])
