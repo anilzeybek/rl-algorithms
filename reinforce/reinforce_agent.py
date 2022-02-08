@@ -1,27 +1,27 @@
-import numpy as np
 import torch
 import torch.nn.functional as F
-from model import PolicyNetwork
 import torch.optim as optim
-
-
-LR = 0.0005
-GAMMA = 0.99
+from model import PolicyNetwork
+import os
 
 
 class REINFORCEAgent:
-    def __init__(self, state_size, action_size):
-        self.state_size = state_size
-        self.action_size = action_size
+    def __init__(self, obs_dim, action_dim, env_name, lr=1e-3, gamma=0.99):
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+        self.env_name = env_name
+        self.lr = lr
+        self.gamma = gamma
+
+        self.policy = PolicyNetwork(self.obs_dim, self.action_dim)
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=self.lr)
+
         self.reward_memory = []
         self.action_memory = []
 
-        self.policy = PolicyNetwork(state_size, action_size)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=LR)
-
-    def act(self, state):
-        state = torch.from_numpy(state).float()
-        probabilities = F.softmax(self.policy(state), dim=0)
+    def act(self, obs):
+        obs = torch.from_numpy(obs).float()
+        probabilities = F.softmax(self.policy(obs), dim=0)
 
         action_probs = torch.distributions.Categorical(probabilities)
         action = action_probs.sample()
@@ -29,16 +29,23 @@ class REINFORCEAgent:
         self.action_memory.append(action_probs.log_prob(action))
         return action.item()
 
-    def step(self, state, action, reward, next_state, done):
+    def step(self, obs, action, reward, next_obs, done):
         self.reward_memory.append(reward)
 
         if done:
             self._learn()
 
+    def save(self):
+        os.makedirs(f"saved_networks/reinforce/{self.env_name}", exist_ok=True)
+        torch.save(self.policy.state_dict(), f"saved_networks/reinforce/{self.env_name}/Q_network.pt")
+
+    def load(self):
+        self.policy.load_state_dict(torch.load(f"saved_networks/reinforce/{self.env_name}/Q_network.pt"))
+
     def _learn(self):
-        G = torch.zeros_like(torch.tensor(self.reward_memory))
+        G = torch.zeros_like(torch.Tensor(self.reward_memory))
         for i, r in enumerate(reversed(self.reward_memory)):
-            G[-(i+1)] = r + GAMMA * G[-i]
+            G[-(i+1)] = r + self.gamma * G[-i]
 
         loss = 0
         for g, logprob in zip(G, self.action_memory):

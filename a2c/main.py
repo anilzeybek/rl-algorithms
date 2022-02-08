@@ -5,11 +5,11 @@ import json
 import torch
 import argparse
 from collections import deque
-from reinforce_agent import REINFORCEAgent
+from a2c_agent import A2CAgent
 
 
 def read_hyperparams():
-    with open('reinforce/hyperparams.json') as f:
+    with open('a2c/hyperparams.json') as f:
         hyperparams = json.load(f)
         return hyperparams
 
@@ -25,7 +25,7 @@ def get_args():
 
 
 def test(env):
-    agent = REINFORCEAgent(
+    agent = A2CAgent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
         env_name=env.unwrapped.spec.id,
@@ -56,12 +56,13 @@ def test(env):
 def train(env):
     hyperparams = read_hyperparams()
 
-    agent = REINFORCEAgent(
+    agent = A2CAgent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
         env_name=env.unwrapped.spec.id,
-        lr=hyperparams['lr'],
-        gamma=hyperparams['gamma'],
+        actor_lr=hyperparams['actor_lr'],
+        critic_lr=hyperparams['critic_lr'],
+        gamma=hyperparams['gamma']
     )
 
     max_episodes = hyperparams['max_episodes']
