@@ -5,11 +5,11 @@ import json
 import torch
 import argparse
 from collections import deque
-from ddqn_agent import DDQNAgent
+from double_dqn.double_dqn_agent import DoubleDQNAgent
 
 
 def read_hyperparams():
-    with open('ddqn/hyperparams.json') as f:
+    with open('double_dqn/hyperparams.json') as f:
         hyperparams = json.load(f)
         return hyperparams
 
@@ -25,7 +25,7 @@ def get_args():
 
 
 def test(env):
-    agent = DDQNAgent(
+    agent = DoubleDQNAgent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
         env_name=env.unwrapped.spec.id,
@@ -57,7 +57,7 @@ def test(env):
 def train(env):
     hyperparams = read_hyperparams()
 
-    agent = DDQNAgent(
+    agent = DoubleDQNAgent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
         env_name=env.unwrapped.spec.id,

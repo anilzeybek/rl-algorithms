@@ -8,7 +8,7 @@ from cpprb import ReplayBuffer
 import os
 
 
-class DDQNAgent():
+class DoubleDQNAgent():
     def __init__(self, obs_dim, action_dim, env_name, buffer_size=65536, lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, eps_start=1.0, eps_end=0.01, eps_decay=0.995, train_mode=True):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
@@ -55,11 +55,11 @@ class DDQNAgent():
             self.rb.on_episode_end()
 
     def save(self):
-        os.makedirs(f"saved_networks/ddqn/{self.env_name}", exist_ok=True)
-        torch.save(self.Q_network.state_dict(), f"saved_networks/ddqn/{self.env_name}/Q_network.pt")
+        os.makedirs(f"saved_networks/double_dqn/{self.env_name}", exist_ok=True)
+        torch.save(self.Q_network.state_dict(), f"saved_networks/double_dqn/{self.env_name}/Q_network.pt")
 
     def load(self):
-        self.Q_network.load_state_dict(torch.load(f"saved_networks/ddqn/{self.env_name}/Q_network.pt"))
+        self.Q_network.load_state_dict(torch.load(f"saved_networks/double_dqn/{self.env_name}/Q_network.pt"))
 
     def _update_eps(self):
         self.eps = max(self.eps_end, self.eps_decay * self.eps)
