@@ -36,7 +36,6 @@ class DQNAgent:
             "next_obs": {"shape": self.obs_dim},
             "done": {}
         })
-        self.learn_count = 0
 
     def act(self, obs):
         if self.train_mode and np.random.rand() < self.eps:
