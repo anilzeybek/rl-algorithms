@@ -1,93 +1,94 @@
+from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from model import QNetwork
-from prioritized_replay_buffer import Memory
+from cpprb import PrioritizedReplayBuffer
+import os
 
 
-BUFFER_SIZE = 10000
-BATCH_SIZE = 64
-GAMMA = 0.99
-SYNC_TARGET_EVERY = 1000
-LR = 1e-3
-UPDATE_EVERY = 4
-EPS_START = 1.0
-EPS_END = 0.01
-EPS_DECAY = 0.995
+class PrioritizedDQNAgent:
+    def __init__(self, obs_dim, action_dim, env_name, buffer_size=65536, lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, eps_start=1.0, eps_end=0.01, eps_decay=0.995, alpha=0.6, beta=0.4, train_mode=True):
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+        self.env_name = env_name
+        self.buffer_size = buffer_size
+        self.lr = lr
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.tau = tau
+        self.eps_start = eps_start
+        self.eps_end = eps_end
+        self.eps_decay = eps_decay
+        self.alpha = alpha
+        self.beta = beta
+        self.train_mode = train_mode
 
+        self.Q_network = QNetwork(obs_dim, action_dim)
+        self.target_network = deepcopy(self.Q_network)
 
-class PERAgent():
-    def __init__(self, state_size, action_size):
-        self.state_size = state_size
-        self.action_size = action_size
+        self.optimizer = optim.Adam(self.Q_network.parameters(), lr=self.lr)
 
-        self.Q_network = QNetwork(state_size, action_size)
-        self.target_network = QNetwork(state_size, action_size)
-        self.optimizer = optim.Adam(self.Q_network.parameters(), lr=LR)
+        self.eps = self.eps_start
+        self.prb = PrioritizedReplayBuffer(self.buffer_size, env_dict={
+            "obs": {"shape": self.obs_dim},
+            "action": {},
+            "reward": {},
+            "next_obs": {"shape": self.obs_dim},
+            "done": {}},
+            alpha=self.alpha
+        )
 
-        self.eps = EPS_START
-        self.memory = Memory(BUFFER_SIZE)
-        self.t_step = 0
-        self.learn_count = 0
-
-    def act(self, state):
-        if np.random.rand() < self.eps:
-            return np.random.randint(self.action_size)
+    def act(self, obs):
+        if self.train_mode and np.random.rand() < self.eps:
+            return np.random.randint(self.action_dim)
         else:
-            state = torch.from_numpy(state).unsqueeze(0)
-            action_values = self.Q_network(state)
+            obs = torch.from_numpy(obs).unsqueeze(0)
+            action_values = self.Q_network(obs)
             return torch.argmax(action_values).item()
 
-    def step(self, state, action, reward, next_state, done):
-        self._append_experience((state, action, reward, next_state, done))
-
-        self.t_step = (self.t_step + 1) % UPDATE_EVERY
-        if self.t_step == 0 and len(self.memory) > BATCH_SIZE:
-            experiences, idxs, is_weights = self.memory.sample(BATCH_SIZE)
-            self._learn(experiences, idxs, is_weights)
+    def step(self, obs, action, reward, next_obs, done):
+        self.prb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, done=done)
+        self._learn()
 
         if done:
             self._update_eps()
+            self.prb.on_episode_end()
 
-    def _append_experience(self, experience):
-        state, action, reward, next_state, done = experience
-        with torch.no_grad():
-            curr = self.Q_network(torch.from_numpy(state))[action]
+    def save(self):
+        os.makedirs(f"saved_networks/prioritized_dqn/{self.env_name}", exist_ok=True)
+        torch.save(self.Q_network.state_dict(), f"saved_networks/prioritized_dqn/{self.env_name}/Q_network.pt")
 
-            target_next = self.target_network(torch.from_numpy(next_state)).max()
-            target = reward + GAMMA * target_next * (1 - done)
-
-            td_error = abs(curr - target)
-            self.memory.add(td_error, experience)
+    def load(self):
+        self.Q_network.load_state_dict(torch.load(f"saved_networks/prioritized_dqn/{self.env_name}/Q_network.pt"))
 
     def _update_eps(self):
-        self.eps = max(EPS_END, EPS_DECAY * self.eps)
+        self.eps = max(self.eps_end, self.eps_decay * self.eps)
 
-    def _learn(self, experiences, idxs, is_weights):
-        states = torch.from_numpy(np.vstack([e[0] for e in experiences if e is not None])).float()
-        actions = torch.from_numpy(np.vstack([e[1] for e in experiences if e is not None])).long()
-        rewards = torch.from_numpy(np.vstack([e[2] for e in experiences if e is not None])).float()
-        next_states = torch.from_numpy(np.vstack([e[3] for e in experiences if e is not None])).float()
-        dones = torch.from_numpy(np.vstack([e[4] for e in experiences if e is not None]).astype(np.uint8)).float()
+    def _learn(self):
+        sample = self.prb.sample(self.batch_size, beta=self.beta)
 
-        Q_current = self.Q_network(states).gather(1, actions)
+        obs = torch.Tensor(sample['obs'])
+        action = torch.Tensor(sample['action']).long()
+        reward = torch.Tensor(sample['reward'])
+        next_obs = torch.Tensor(sample['next_obs'])
+        done = torch.Tensor(sample['done'])
+
+        Q_current = self.Q_network(obs).gather(1, action)
         with torch.no_grad():
-            a = self.Q_network(next_states).argmax(1).unsqueeze(1)
-            Q_target_next = self.target_network(next_states).gather(1, a)
-            Q_target = rewards + GAMMA * Q_target_next * (1 - dones)
+            a = self.Q_network(next_obs).argmax(1).unsqueeze(1)
+            Q_target_next = self.target_network(next_obs).gather(1, a)
+            Q_target = reward + self.gamma * Q_target_next * (1 - done)
 
-            errors = (Q_target - Q_current).abs().numpy()
+            error = (Q_target - Q_current).abs().numpy()
 
-        for i in range(BATCH_SIZE):
-            idx = idxs[i]
-            self.memory.update(idx, errors[i])
+        self.prb.update_priorities(sample['indexes'], error)
 
         self.optimizer.zero_grad()
-        loss = (torch.FloatTensor(is_weights) * F.mse_loss(Q_current, Q_target)).mean()
+        loss = (torch.Tensor(sample['weights']) * F.mse_loss(Q_current, Q_target)).mean()
         loss.backward()
         self.optimizer.step()
 
-        self.learn_count += 1
-        if self.learn_count % SYNC_TARGET_EVERY == 0:
-            self.target_network.load_state_dict(self.Q_network.state_dict())
+        for t_params, e_params in zip(self.target_network.parameters(), self.Q_network.parameters()):
+            t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
