@@ -3,12 +3,12 @@ import torch.nn.functional as F
 
 
 class QNetwork(nn.Module):
-    def __init__(self, state_size, action_size):
+    def __init__(self, obs_dim, action_dim):
         super(QNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_size, 64)
+        self.fc1 = nn.Linear(obs_dim, 64)
         self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, action_size)
+        self.fc3 = nn.Linear(64, action_dim)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
