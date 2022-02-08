@@ -38,12 +38,12 @@ class DQNAgent():
         })
         self.learn_count = 0
 
-    def act(self, state):
+    def act(self, obs):
         if self.train_mode and np.random.rand() < self.eps:
             return np.random.randint(self.action_dim)
         else:
-            state = torch.from_numpy(state).unsqueeze(0).float()
-            action_values = self.Q_network(state)
+            obs = torch.from_numpy(obs).unsqueeze(0)
+            action_values = self.Q_network(obs)
             return torch.argmax(action_values).item()
 
     def step(self, obs, action, reward, next_obs, done):
