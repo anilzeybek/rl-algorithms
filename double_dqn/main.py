@@ -5,7 +5,7 @@ import json
 import torch
 import argparse
 from collections import deque
-from double_dqn.double_dqn_agent import DoubleDQNAgent
+from double_dqn_agent import DoubleDQNAgent
 
 
 def read_hyperparams():
