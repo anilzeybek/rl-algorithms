@@ -6,6 +6,7 @@ import torch
 import argparse
 from collections import deque
 from reinforce_agent import REINFORCEAgent
+from time import time
 
 
 def read_hyperparams():
@@ -16,7 +17,7 @@ def read_hyperparams():
 
 def get_args():
     parser = argparse.ArgumentParser(description='options')
-    parser.add_argument('--env_name', type=str, default='LunarLander-v2')
+    parser.add_argument('--env_name', type=str, default='CartPole-v1')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--seed', type=int, default=0)
 
@@ -64,6 +65,8 @@ def train(env):
         gamma=hyperparams['gamma'],
     )
 
+    start = time()
+
     max_episodes = hyperparams['max_episodes']
     scores = deque(maxlen=10)
     for i in range(1, max_episodes+1):
@@ -84,6 +87,9 @@ def train(env):
         print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}', end="")
         if i % 10 == 0:
             print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}')
+
+    end = time()
+    print("training completed, elapsed time: ", end - start)
 
     agent.save()
 
