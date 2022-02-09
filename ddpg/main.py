@@ -19,7 +19,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='Pendulum-v0')
     parser.add_argument('--test', default=False, action='store_true')
-    parser.add_argument('--seed', type=int, default=7)
+    parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
     return args

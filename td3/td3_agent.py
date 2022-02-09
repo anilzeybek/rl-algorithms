@@ -66,11 +66,11 @@ class TD3Agent:
             self.rb.on_episode_end()
 
     def save(self):
-        os.makedirs(f"saved_networks/ddpg/{self.env_name}", exist_ok=True)
-        torch.save(self.actor.state_dict(), f"saved_networks/ddpg/{self.env_name}/actor.pt")
+        os.makedirs(f"saved_networks/td3/{self.env_name}", exist_ok=True)
+        torch.save(self.actor.state_dict(), f"saved_networks/td3/{self.env_name}/actor.pt")
 
     def load(self):
-        self.actor.load_state_dict(torch.load(f"saved_networks/ddpg/{self.env_name}/actor.pt"))
+        self.actor.load_state_dict(torch.load(f"saved_networks/td3/{self.env_name}/actor.pt"))
 
     def _learn(self):
         self.total_it += 1
