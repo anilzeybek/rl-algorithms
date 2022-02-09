@@ -1,109 +1,100 @@
+from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from model import QNetwork, PolicyNetwork
-from replay_buffer import ReplayBuffer
-from copy import deepcopy
-
-
-BUFFER_SIZE = 200000
-BATCH_SIZE = 64
-GAMMA = 0.99
-POLYAK = 0.995
-LR_ACTOR = 1e-3
-LR_CRITIC = 1e-3
-START_STEPS = 25000
-UPDATE_EVERY = 10
-UPDATE_AFTER = 1000
-ACT_NOISE = 0.1
+from models import Actor, Critic
+from cpprb import ReplayBuffer
+import os
 
 
 class DDPGAgent:
-    def __init__(self, obs_dim, act_dim, act_limits):
+    def __init__(self, obs_dim, action_dim, action_bounds, env_name, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, train_mode=True):
         self.obs_dim = obs_dim
-        self.act_dim = act_dim
-        self.act_limits = act_limits
-        self.t = 0
+        self.action_dim = action_dim
+        self.action_bounds = action_bounds
+        self.env_name = env_name
+        self.buffer_size = buffer_size
+        self.actor_lr = actor_lr
+        self.critic_lr = critic_lr
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.tau = tau
+        self.train_mode = train_mode
 
-        self.actor_network = PolicyNetwork(obs_dim, act_dim, act_limits)
-        self.actor_target = deepcopy(self.actor_network)
+        self.actor = Actor(obs_dim, action_dim, action_bounds)
+        self.actor_target = deepcopy(self.actor)
 
-        self.critic_network = QNetwork(obs_dim, act_dim)
-        self.critic_target = deepcopy(self.critic_network)
+        self.critic = Critic(obs_dim, action_dim)
+        self.critic_target = deepcopy(self.critic)
 
-        for p in self.actor_target.parameters():
-            p.requires_grad = False
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
-        for p in self.critic_target.parameters():
-            p.requires_grad = False
+        self.rb = ReplayBuffer(self.buffer_size, env_dict={
+            "obs": {"shape": self.obs_dim},
+            "action": {"shape": self.action_dim},
+            "reward": {},
+            "next_obs": {"shape": self.obs_dim},
+            "done": {}
+        })
 
-        self.replay_buffer = ReplayBuffer(BUFFER_SIZE)
-
-        self.actor_optimizer = optim.Adam(self.actor_network.parameters(), lr=LR_ACTOR)
-        self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=LR_CRITIC)
-
-    def act(self, state, noise=ACT_NOISE):
-        if self.t > START_STEPS:
-            with torch.no_grad():
-                a = self.actor_network(torch.as_tensor(state, dtype=torch.float32)).numpy()
-                a += noise * np.random.randn(self.act_dim)
-                return np.clip(a, -self.act_limits, self.act_limits)
-        else:
-            return np.random.uniform(low=-self.act_limits, high=self.act_limits, size=(self.act_dim,))
-
-    def step(self, state, action, reward, next_state, done):
-        self.t += 1
-        self.replay_buffer.store_transition(state, action, reward, next_state, done)
-
-        if self.t >= UPDATE_AFTER and self.t % UPDATE_EVERY == 0:
-            for _ in range(UPDATE_EVERY):
-                batch = self.replay_buffer.sample(BATCH_SIZE)
-                self._learn(data=batch)
-
-    def _compute_loss_q(self, data):
-        state, action, reward, next_state, done = data
-        Q_current = self.critic_network(state, action)
-
+    def act(self, obs):
         with torch.no_grad():
-            Q_target_next = self.critic_target(next_state, self.actor_target(next_state))
-            Q_target = reward + GAMMA * Q_target_next * (1 - done)
+            action = self.actor(torch.Tensor(obs)).numpy()
 
-        loss = ((Q_current - Q_target) ** 2).mean()
-        return loss
+        if self.train_mode:
+            action += max(self.action_bounds['high']) / 5 * np.random.randn(self.action_dim)
+            action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
 
-    def _compute_loss_pi(self, data):
-        state = data[0]
-        Q = self.critic_network(state, self.actor_network(state))
+            random_actions = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
+                                               size=self.action_dim)
+            action += np.random.binomial(1, 0.3, 1)[0] * (random_actions - action)
 
-        return -Q.mean()
+        action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
+        return action
 
-    def _learn(self, data):
+    def step(self, obs, action, reward, next_obs, done):
+        self.rb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, done=done)
+
+        if done:
+            self._learn()
+            self.rb.on_episode_end()
+
+    def save(self):
+        os.makedirs(f"saved_networks/ddpg/{self.env_name}", exist_ok=True)
+        torch.save(self.actor.state_dict(), f"saved_networks/ddpg/{self.env_name}/actor.pt")
+
+    def load(self):
+        self.actor.load_state_dict(torch.load(f"saved_networks/ddpg/{self.env_name}/actor.pt"))
+
+    def _learn(self):
+        sample = self.rb.sample(self.batch_size)
+        obs = torch.Tensor(sample['obs'])
+        action = torch.Tensor(sample['action'])
+        reward = torch.Tensor(sample['reward'])
+        next_obs = torch.Tensor(sample['next_obs'])
+        done = torch.Tensor(sample['done'])
+
+        Q_current = self.critic(obs, action)
+        with torch.no_grad():
+            Q_target_next = self.critic_target(next_obs, self.actor_target(next_obs))
+            Q_target = reward + self.gamma * Q_target_next * (1 - done)
+
+        critic_loss = F.mse_loss(Q_current, Q_target)
+
         self.critic_optimizer.zero_grad()
-        loss_Q = self._compute_loss_q(data)
-        loss_Q.backward()
+        critic_loss.backward()
         self.critic_optimizer.step()
 
-        # Freeze Q-network so you don't waste computational effort
-        # computing gradients for it during the policy learning step.
-        for p in self.critic_network.parameters():
-            p.requires_grad = False
+        actor_loss = -self.critic(obs, self.actor(obs)).mean()
 
         self.actor_optimizer.zero_grad()
-        loss_pi = self._compute_loss_pi(data)
-        loss_pi.backward()
+        actor_loss.backward()
         self.actor_optimizer.step()
 
-        # Unfreeze Q-network so you can optimize it at next DDPG step.
-        for p in self.critic_network.parameters():
-            p.requires_grad = True
+        for t_params, e_params in zip(self.actor_target.parameters(), self.actor.parameters()):
+            t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
 
-        # Finally, update target networks by polyak averaging.
-        with torch.no_grad():
-            for p, p_targ in zip(self.actor_network.parameters(), self.actor_target.parameters()):
-                p_targ.data.mul_(POLYAK)
-                p_targ.data.add_((1 - POLYAK) * p.data)
-
-            for p, p_targ in zip(self.critic_network.parameters(), self.critic_target.parameters()):
-                p_targ.data.mul_(POLYAK)
-                p_targ.data.add_((1 - POLYAK) * p.data)
+        for t_params, e_params in zip(self.critic_target.parameters(), self.critic.parameters()):
+            t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
