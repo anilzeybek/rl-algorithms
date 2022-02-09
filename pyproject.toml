@@ -13,6 +13,7 @@ Box2D = "^2.3.10"
 cpprb = "^10.5.1"
 pyglet = "^1.5.21"
 mujoco-py = "^2.1.2"
+PettingZoo = "^1.15.0"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.6.0"

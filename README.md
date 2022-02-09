@@ -8,4 +8,5 @@ Papers to some of the algorithms:
 - Hindsight Experience Replay: https://arxiv.org/abs/1707.01495
 - DDPG: https://arxiv.org/abs/1509.02971
 - MADDPG: https://arxiv.org/abs/1706.02275
+- TD3: https://arxiv.org/abs/1802.09477
 - Ape-X: https://arxiv.org/abs/1803.00933 (not complete yet, wip)
