@@ -1,5 +1,5 @@
 {
-    "max_episodes": 1000,
+    "max_episodes": 200,
     "k_future": 4,
     "buffer_size" : 200000,
     "actor_lr" : 1e-3,

@@ -81,11 +81,11 @@ class HER_TD3Agent:
 
         if done:
             self._store(self.exec_dict)
+            for _ in range(len(self.exec_dict['obs'])):
+                self._learn()
+
             for key in self.exec_dict:
                 self.exec_dict[key] = []
-
-            for _ in range(20):
-                self._learn()
 
     def save(self):
         os.makedirs(f"saved_networks/her_td3/{self.env_name}", exist_ok=True)
@@ -112,8 +112,9 @@ class HER_TD3Agent:
                     future_idx = np.random.randint(low=t, high=episode_len)
                     new_goal = episode_dict['next_achieved_goal'][future_idx]
                     new_reward = self.compute_reward_func(next_achieved, new_goal, None)
-                    done = new_reward + 1
-                    self.rb.add(obs=obs, action=action, reward=new_reward, next_obs=next_obs, goal=new_goal, done=done)
+                    new_done = new_reward + 1
+                    self.rb.add(obs=obs, action=action, reward=new_reward,
+                                next_obs=next_obs, goal=new_goal, done=new_done)
 
         self.rb.on_episode_end()
 
