@@ -41,7 +41,7 @@ class DoubleDQNAgent:
         if self.train_mode and np.random.rand() < self.eps:
             return np.random.randint(self.action_dim)
         else:
-            obs = torch.from_numpy(obs).unsqueeze(0)
+            obs = torch.from_numpy(obs).float().unsqueeze(0)
             action_values = self.Q_network(obs)
             return torch.argmax(action_values).item()
 

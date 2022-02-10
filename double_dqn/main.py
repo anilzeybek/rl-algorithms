@@ -34,8 +34,7 @@ def test(env):
     )
     agent.load()
 
-    scores = deque(maxlen=10)
-    for i in range(1, 1000):
+    for _ in range(1, 1000):
         obs = env.reset()
         score = 0
         done = False
@@ -47,12 +46,7 @@ def test(env):
             obs = next_obs
             score += reward
 
-        scores.append(score)
-        mean_score = np.mean(scores)
-
-        print(f'\rEpisode: {i} \tAverage Score: {mean_score:.2f}', end="")
-        if i % 10 == 0:
-            print(f'\rEpisode: {i} \tAverage Score: {mean_score:.2f}')
+        print(score)
 
 
 def train(env):
