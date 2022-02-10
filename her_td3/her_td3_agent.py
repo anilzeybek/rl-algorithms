@@ -71,13 +71,13 @@ class HER_TD3Agent:
         action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
         return action
 
-    def step(self, obs, action, reward, next_obs, desired_goal, next_achieved_goal, done):
-        self.exec_dict["obs"].append(obs)
+    def step(self, env_dict, action, reward, next_env_dict, done):
+        self.exec_dict["obs"].append(env_dict["observation"])
         self.exec_dict["action"].append(action)
         self.exec_dict["reward"].append(reward)
-        self.exec_dict["next_obs"].append(next_obs)
-        self.exec_dict["desired_goal"].append(desired_goal)
-        self.exec_dict["next_achieved_goal"].append(next_achieved_goal)
+        self.exec_dict["next_obs"].append(next_env_dict["observation"])
+        self.exec_dict["desired_goal"].append(env_dict["desired_goal"])
+        self.exec_dict["next_achieved_goal"].append(next_env_dict["achieved_goal"])
 
         if done:
             self._store(self.exec_dict)
@@ -126,7 +126,7 @@ class HER_TD3Agent:
         action = torch.Tensor(sample['action'])
         reward = torch.Tensor(sample['reward'])
         next_input = torch.Tensor(np.concatenate([sample['next_obs'], sample['goal']], axis=1))
-        done = torch.Tensor(sample['done']).long()
+        done = torch.Tensor(sample['done'])
 
         Q_current1, Q_current2 = self.critic(input, action)
         with torch.no_grad():

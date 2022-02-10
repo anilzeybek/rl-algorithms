@@ -19,7 +19,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='FetchReach-v1')
     parser.add_argument('--test', default=False, action='store_true')
-    parser.add_argument('--seed', type=int, default=2)
+    parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
     return args
@@ -37,8 +37,7 @@ def test(env):
     )
     agent.load()
 
-    scores = deque(maxlen=10)
-    for i in range(1, 1000):
+    for _ in range(1, 1000):
         env_dict = env.reset()
         score = 0
         done = False
@@ -50,12 +49,7 @@ def test(env):
             env_dict = next_env_dict
             score += reward
 
-        scores.append(score)
-        mean_score = np.mean(scores)
-
-        print(f'\rEpisode: {i} \tAverage Score: {mean_score:.2f}', end="")
-        if i % 10 == 0:
-            print(f'\rEpisode: {i} \tAverage Score: {mean_score:.2f}')
+        print(score)
 
 
 def train(env):
@@ -93,8 +87,7 @@ def train(env):
             action = agent.act(env_dict["observation"], env_dict["desired_goal"])
             next_env_dict, reward, done, _ = env.step(action)
 
-            agent.step(env_dict["observation"], action, reward, next_env_dict["observation"],
-                       env_dict["desired_goal"], next_env_dict["achieved_goal"], done)
+            agent.step(env_dict, action, reward, next_env_dict, done)
             env_dict = next_env_dict
             score += reward
 
