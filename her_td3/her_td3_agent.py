@@ -61,12 +61,10 @@ class HER_TD3Agent:
             action = self.actor(torch.Tensor(x)).numpy()
 
         if self.train_mode:
-            action += max(self.action_bounds['high']) / 5 * np.random.randn(self.action_dim)
-            action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
-
-            random_actions = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
-                                               size=self.action_dim)
-            action += np.random.binomial(1, 0.3, 1)[0] * (random_actions - action)
+            action += self.action_bounds['high'] * 0.2 * np.random.randn(self.action_dim)
+            if np.random.random() < 0.2:
+                action = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
+                                           size=self.action_dim)
 
         action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
         return action
@@ -81,7 +79,7 @@ class HER_TD3Agent:
 
         if done:
             self._store(self.exec_dict)
-            for _ in range(len(self.exec_dict['obs'])):
+            for _ in range(len(self.exec_dict['obs']) // 5):
                 self._learn()
 
             for key in self.exec_dict:
