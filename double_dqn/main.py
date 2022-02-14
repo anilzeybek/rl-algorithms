@@ -86,9 +86,7 @@ def train(env):
         scores.append(score)
         mean_score = np.mean(scores)
 
-        print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}', end="")
-        if i % 10 == 0:
-            print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}')
+        print(f'ep: {i}/{max_episodes} | score: {mean_score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
