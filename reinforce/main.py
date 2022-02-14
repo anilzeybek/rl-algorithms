@@ -45,7 +45,7 @@ def test(env):
             obs = next_obs
             score += reward
 
-        print(score)
+        print(f"score: {score:.2f}")
 
 
 def train(env):
