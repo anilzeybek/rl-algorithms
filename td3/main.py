@@ -17,7 +17,7 @@ def read_hyperparams():
 
 def get_args():
     parser = argparse.ArgumentParser(description='options')
-    parser.add_argument('--env_name', type=str, default='Pendulum-v0')
+    parser.add_argument('--env_name', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--seed', type=int, default=0)
 
@@ -30,8 +30,7 @@ def test(env):
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.shape[0],
         action_bounds={"low": env.action_space.low, "high": env.action_space.high},
-        env_name=env.unwrapped.spec.id,
-        train_mode=False
+        env_name=env.unwrapped.spec.id
     )
     agent.load()
 
@@ -40,14 +39,14 @@ def test(env):
         score = 0
         done = False
         while not done:
-            action = agent.act(obs)
+            action = agent.act(obs, train_mode=False)
             next_obs, reward, done, _ = env.step(action)
             env.render()
 
             obs = next_obs
             score += reward
 
-        print(score)
+        print(f"score: {score:.2f}")
 
 
 def train(env):
@@ -58,6 +57,8 @@ def train(env):
         action_dim=env.action_space.shape[0],
         action_bounds={"low": env.action_space.low, "high": env.action_space.high},
         env_name=env.unwrapped.spec.id,
+        expl_noise=hyperparams['expl_noise'],
+        start_timesteps=hyperparams['start_timesteps'],
         buffer_size=hyperparams['buffer_size'],
         actor_lr=hyperparams['actor_lr'],
         critic_lr=hyperparams['critic_lr'],
@@ -67,7 +68,6 @@ def train(env):
         policy_noise=hyperparams['policy_noise'],
         noise_clip=hyperparams['noise_clip'],
         policy_freq=hyperparams['policy_freq'],
-        train_mode=True
     )
 
     start = time()
@@ -77,21 +77,23 @@ def train(env):
     for i in range(1, max_episodes+1):
         obs = env.reset()
         score = 0
+        episode_timesteps = 0
         done = False
         while not done:
+            episode_timesteps += 1
+
             action = agent.act(obs)
             next_obs, reward, done, _ = env.step(action)
+            real_done = done if episode_timesteps < env._max_episode_steps else False
 
-            agent.step(obs, action, reward, next_obs, done)
+            agent.step(obs, action, reward, next_obs, real_done)
             obs = next_obs
             score += reward
 
         scores.append(score)
         mean_score = np.mean(scores)
 
-        print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}', end="")
-        if i % 10 == 0:
-            print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}')
+        print(f'ep: {i}/{max_episodes} | score: {mean_score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
@@ -107,6 +109,7 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     env.seed(args.seed)
+    env.action_space.seed(args.seed)
 
     if args.test:
         test(env)
