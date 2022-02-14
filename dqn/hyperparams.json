@@ -1,11 +1,11 @@
 {
     "max_episodes": 400,
-    "buffer_size" : 65536,
-    "lr" : 1e-3,
-    "batch_size" : 64,
-    "gamma" : 0.99,
-    "tau" : 0.05,
-    "eps_start" : 1.0,
-    "eps_end" : 0.01,
-    "eps_decay" : 0.995
+    "buffer_size": 65536,
+    "lr": 1e-3,
+    "batch_size": 64,
+    "gamma": 0.99,
+    "tau": 0.05,
+    "eps_start": 1.0,
+    "eps_end": 0.01,
+    "eps_decay": 0.995
 }
