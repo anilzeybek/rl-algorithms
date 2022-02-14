@@ -95,6 +95,7 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     env.seed(args.seed)
+    env.action_space.seed(args.seed)
 
     if args.test:
         test(env)
