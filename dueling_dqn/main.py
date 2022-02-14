@@ -30,7 +30,6 @@ def test(env):
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
         env_name=env.unwrapped.spec.id,
-        train_mode=False
     )
     agent.load()
 
@@ -39,7 +38,7 @@ def test(env):
         score = 0
         done = False
         while not done:
-            action = agent.act(obs)
+            action = agent.act(obs, train_mode=False)
             next_obs, reward, done, _ = env.step(action)
             env.render()
 
@@ -64,7 +63,6 @@ def train(env):
         eps_start=hyperparams['eps_start'],
         eps_end=hyperparams['eps_end'],
         eps_decay=hyperparams['eps_decay'],
-        train_mode=True
     )
 
     start = time()

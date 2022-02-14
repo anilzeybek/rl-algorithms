@@ -9,7 +9,7 @@ import os
 
 
 class DuelingDQNAgent:
-    def __init__(self, obs_dim, action_dim, env_name, buffer_size=65536, lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, eps_start=1.0, eps_end=0.01, eps_decay=0.995, train_mode=True):
+    def __init__(self, obs_dim, action_dim, env_name, buffer_size=65536, lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -21,7 +21,6 @@ class DuelingDQNAgent:
         self.eps_start = eps_start
         self.eps_end = eps_end
         self.eps_decay = eps_decay
-        self.train_mode = train_mode
 
         self.dueling_network = DuelingNetwork(obs_dim, action_dim)
         self.target_network = deepcopy(self.dueling_network)
@@ -37,8 +36,8 @@ class DuelingDQNAgent:
             "done": {}
         })
 
-    def act(self, obs):
-        if self.train_mode and np.random.rand() < self.eps:
+    def act(self, obs, train_mode=True):
+        if train_mode and np.random.rand() < self.eps:
             return np.random.randint(self.action_dim)
         else:
             obs = torch.from_numpy(obs).float().unsqueeze(0)
