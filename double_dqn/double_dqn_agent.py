@@ -82,5 +82,5 @@ class DoubleDQNAgent:
         loss.backward()
         self.optimizer.step()
 
-        for t_params, e_params in zip(self.target_network.parameters(), self.Q_network.parameters()):
-            t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+        for param, target_param in zip(self.Q_network.parameters(), self.target_network.parameters()):
+            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
