@@ -6,7 +6,7 @@ import os
 
 
 class A2CAgent:
-    def __init__(self, obs_dim, action_dim, env_name,  actor_lr=1e-3, critic_lr=1e-3, gamma=0.99):
+    def __init__(self, obs_dim, action_dim, env_name, actor_lr=1e-3, critic_lr=1e-3, gamma=0.99):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -36,17 +36,17 @@ class A2CAgent:
         obs = torch.from_numpy(obs).float()
         next_obs = torch.from_numpy(next_obs).float()
 
-        v_current = self.critic_network(obs)
+        V_current = self.critic_network(obs)
         with torch.no_grad():
-            v_target = reward + self.gamma * self.critic_network(next_obs) * (1 - int(done))
+            V_target = reward + self.gamma * self.critic_network(next_obs) * (1 - done)
 
         self.critic_optimizer.zero_grad()
-        critic_loss = (v_target - v_current)**2
+        critic_loss = F.mse_loss(V_current, V_target)
         critic_loss.backward()
         self.critic_optimizer.step()
 
         with torch.no_grad():
-            advantage = (v_target - v_current)
+            advantage = (V_target - V_current)
 
         self.actor_optimizer.zero_grad()
         actor_loss = -(advantage * self.log_prob)

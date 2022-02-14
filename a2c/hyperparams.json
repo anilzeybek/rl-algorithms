@@ -1,5 +1,5 @@
 {
-    "max_episodes": 600,
+    "max_episodes": 715,
     "actor_lr": 1e-3,
     "critic_lr": 1e-3,
     "gamma": 0.99
