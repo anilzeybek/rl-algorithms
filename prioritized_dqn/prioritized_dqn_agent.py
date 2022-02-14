@@ -52,7 +52,7 @@ class PrioritizedDQNAgent:
         self._learn()
 
         if done:
-            self._update_eps()
+            self.eps = max(self.eps_end, self.eps_decay * self.eps)
             self.prb.on_episode_end()
 
     def save(self):
@@ -61,9 +61,6 @@ class PrioritizedDQNAgent:
 
     def load(self):
         self.Q_network.load_state_dict(torch.load(f"saved_networks/prioritized_dqn/{self.env_name}/Q_network.pt"))
-
-    def _update_eps(self):
-        self.eps = max(self.eps_end, self.eps_decay * self.eps)
 
     def _learn(self):
         sample = self.prb.sample(self.batch_size, beta=self.beta)

@@ -17,7 +17,7 @@ def read_hyperparams():
 
 def get_args():
     parser = argparse.ArgumentParser(description='options')
-    parser.add_argument('--env_name', type=str, default='CartPole-v1')
+    parser.add_argument('--env_name', type=str, default='LunarLander-v2')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--seed', type=int, default=0)
 
@@ -49,6 +49,8 @@ def test(env):
 
 
 def train(env):
+    # TODO: this has problems
+
     hyperparams = read_hyperparams()
 
     agent = PrioritizedDQNAgent(
@@ -74,12 +76,16 @@ def train(env):
     for i in range(1, max_episodes+1):
         obs = env.reset()
         score = 0
+        episode_timesteps = 0
         done = False
         while not done:
+            episode_timesteps += 1
+
             action = agent.act(obs)
             next_obs, reward, done, _ = env.step(action)
+            real_done = done if episode_timesteps < env._max_episode_steps else False
 
-            agent.step(obs, action, reward, next_obs, done)
+            agent.step(obs, action, reward, next_obs, real_done)
             obs = next_obs
             score += reward
 
