@@ -1,5 +1,5 @@
 {
-    "max_episodes": 900,
+    "max_episodes": 3000,
     "lr": 1e-3,
     "gamma": 0.99
 }
