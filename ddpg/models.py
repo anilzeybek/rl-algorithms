@@ -4,9 +4,9 @@ import torch.nn.functional as F
 
 
 class Actor(nn.Module):
-    def __init__(self, obs_dim, action_dim, action_bounds):
+    def __init__(self, obs_dim, action_dim, max_action):
         super(Actor, self).__init__()
-        self.max_action = max(action_bounds["high"])
+        self.max_action = max_action
 
         self.fc1 = nn.Linear(obs_dim, 256)
         self.fc2 = nn.Linear(256, 256)

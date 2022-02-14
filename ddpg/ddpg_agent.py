@@ -9,20 +9,23 @@ import os
 
 
 class DDPGAgent:
-    def __init__(self, obs_dim, action_dim, action_bounds, env_name, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, train_mode=True):
+    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05):
+        self.max_action = max(action_bounds["high"])
+
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.action_bounds = action_bounds
+        self.start_timesteps = start_timesteps
         self.env_name = env_name
+        self.expl_noise = expl_noise
         self.buffer_size = buffer_size
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr
         self.batch_size = batch_size
         self.gamma = gamma
         self.tau = tau
-        self.train_mode = train_mode
 
-        self.actor = Actor(obs_dim, action_dim, action_bounds)
+        self.actor = Actor(obs_dim, action_dim, self.max_action)
         self.actor_target = deepcopy(self.actor)
 
         self.critic = Critic(obs_dim, action_dim)
@@ -38,27 +41,33 @@ class DDPGAgent:
             "next_obs": {"shape": self.obs_dim},
             "done": {}
         })
+        self.t = 0
 
-    def act(self, obs):
+    def act(self, obs, train_mode=True):
         with torch.no_grad():
-            action = self.actor(torch.Tensor(obs)).numpy()
-
-        if self.train_mode:
-            action += max(self.action_bounds['high']) / 5 * np.random.randn(self.action_dim)
-            action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
-
-            random_actions = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
+            if not train_mode:
+                action = self.actor(torch.Tensor(obs)).numpy()
+            else:
+                if self.t < self.start_timesteps:
+                    action = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
                                                size=self.action_dim)
-            action += np.random.binomial(1, 0.3, 1)[0] * (random_actions - action)
+                else:
+                    action = (
+                        self.actor(torch.Tensor(obs)).numpy()
+                        + np.random.normal(0, self.max_action * self.expl_noise, size=self.action_dim)
+                    )
 
         action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
         return action
 
     def step(self, obs, action, reward, next_obs, done):
+        self.t += 1
         self.rb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, done=done)
 
-        if done:
+        if self.t >= self.start_timesteps:
             self._learn()
+
+        if done:
             self.rb.on_episode_end()
 
     def save(self):
@@ -93,8 +102,8 @@ class DDPGAgent:
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        for t_params, e_params in zip(self.actor_target.parameters(), self.actor.parameters()):
-            t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+        for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-        for t_params, e_params in zip(self.critic_target.parameters(), self.critic.parameters()):
-            t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+        for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
+            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)

@@ -118,8 +118,8 @@ class TD3Agent:
             actor_loss.backward()
             self.actor_optimizer.step()
 
-            for t_params, e_params in zip(self.actor_target.parameters(), self.actor.parameters()):
-                t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-            for t_params, e_params in zip(self.critic_target.parameters(), self.critic.parameters()):
-                t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+            for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
