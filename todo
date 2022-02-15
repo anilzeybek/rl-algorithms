@@ -1,8 +1,7 @@
-[ ] use real_done for each env
-[ ] make every env LunarLander
-[ ] make soft updates as in original TD3 code (only continuous dqns remained)
-[ ] make every agent learn each step (if possible like in dqn, not possible in reinforce)
-[ ] make agent init signature default values as in json file
+use real_done for each env (her_td3 remained)
+make agent init signatures aligned
+make agent init signature default values as in json file
+fix prioritized dqn
 
 [x] dqn
 [x] double dqn

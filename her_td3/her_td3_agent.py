@@ -6,29 +6,33 @@ import torch.optim as optim
 from models import Actor, Critic
 from cpprb import ReplayBuffer
 import os
+from normalizer import Normalizer
 
 
 class HER_TD3Agent:
-    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, k_future=4, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, policy_noise=0.05, noise_clip=0.1, policy_freq=4, train_mode=True):
+    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, policy_noise=0.05, noise_clip=0.1, policy_freq=4):
+        self.max_action = max(action_bounds["high"])
+
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.goal_dim = goal_dim
         self.action_bounds = action_bounds
+        self.start_timesteps = start_timesteps
         self.compute_reward_func = compute_reward_func
         self.k_future = k_future
         self.env_name = env_name
+        self.expl_noise = expl_noise
         self.buffer_size = buffer_size
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr
         self.batch_size = batch_size
         self.gamma = gamma
         self.tau = tau
-        self.policy_noise = policy_noise
-        self.noise_clip = noise_clip
+        self.policy_noise = policy_noise * self.max_action
+        self.noise_clip = noise_clip * self.max_action
         self.policy_freq = policy_freq
-        self.train_mode = train_mode
 
-        self.actor = Actor(obs_dim, action_dim, goal_dim, action_bounds)
+        self.actor = Actor(obs_dim, action_dim, goal_dim, self.max_action)
         self.actor_target = deepcopy(self.actor)
 
         self.critic = Critic(obs_dim, action_dim, goal_dim)
@@ -46,6 +50,7 @@ class HER_TD3Agent:
             "done": {}
         })
         self.total_it = 0
+        self.t = 0
         self.exec_dict = {
             "obs": [],
             "action": [],
@@ -55,21 +60,29 @@ class HER_TD3Agent:
             "next_achieved_goal": []
         }
 
-    def act(self, obs, goal):
-        with torch.no_grad():
-            x = np.concatenate([obs, goal])
-            action = self.actor(torch.Tensor(x)).numpy()
+        self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
 
-        if self.train_mode:
-            action += self.action_bounds['high'] * 0.2 * np.random.randn(self.action_dim)
-            if np.random.random() < 0.2:
-                action = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
-                                           size=self.action_dim)
+    def act(self, obs, goal, train_mode=True):
+        with torch.no_grad():
+            input = self.normalizer.normalize(np.concatenate([obs, goal]))
+            if not train_mode:
+                action = self.actor(torch.Tensor(input)).numpy()
+            else:
+                if self.t < self.start_timesteps:
+                    action = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
+                                               size=self.action_dim)
+                else:
+                    action = (
+                        self.actor(torch.Tensor(input)).numpy()
+                        + np.random.normal(0, self.max_action * self.expl_noise, size=self.action_dim)
+                    )
 
         action = np.clip(action, self.action_bounds['low'], self.action_bounds['high'])
         return action
 
     def step(self, env_dict, action, reward, next_env_dict, done):
+        self.t += 1
+
         self.exec_dict["obs"].append(env_dict["observation"])
         self.exec_dict["action"].append(action)
         self.exec_dict["reward"].append(reward)
@@ -79,20 +92,27 @@ class HER_TD3Agent:
 
         if done:
             self._store(self.exec_dict)
-            for _ in range(len(self.exec_dict['obs']) // 5):
-                self._learn()
-
             for key in self.exec_dict:
                 self.exec_dict[key] = []
 
+        if self.t >= self.start_timesteps:
+            self._learn()
+
     def save(self):
         os.makedirs(f"saved_networks/her_td3/{self.env_name}", exist_ok=True)
-        torch.save(self.actor.state_dict(), f"saved_networks/her_td3/{self.env_name}/actor.pt")
+        torch.save({"actor_state_dict": self.actor.state_dict(),
+                    "normalizer_mean": self.normalizer.mean,
+                    "normalizer_std": self.normalizer.std}, f"saved_networks/her_td3/{self.env_name}/actor.pt")
 
     def load(self):
-        self.actor.load_state_dict(torch.load(f"saved_networks/her_td3/{self.env_name}/actor.pt"))
+        checkpoint = torch.load(f"saved_networks/her_td3/{self.env_name}/actor.pt")
+        self.actor.load_state_dict(checkpoint["actor_state_dict"])
+        self.normalizer.mean = checkpoint["normalizer_mean"]
+        self.normalizer.std = checkpoint["normalizer_std"]
 
     def _store(self, episode_dict):
+        inputs_to_normalize = []
+
         episode_len = len(episode_dict['obs'])
         for t in range(episode_len):
             obs = episode_dict['obs'][t]
@@ -104,16 +124,21 @@ class HER_TD3Agent:
             done = reward + 1
 
             self.rb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, goal=goal, done=done)
+            inputs_to_normalize.append(np.concatenate([obs, goal]))
 
             if episode_len > 1:
                 for _ in range(self.k_future):
                     future_idx = np.random.randint(low=t, high=episode_len)
+
                     new_goal = episode_dict['next_achieved_goal'][future_idx]
                     new_reward = self.compute_reward_func(next_achieved, new_goal, None)
                     new_done = new_reward + 1
+
                     self.rb.add(obs=obs, action=action, reward=new_reward,
                                 next_obs=next_obs, goal=new_goal, done=new_done)
+                    inputs_to_normalize.append(np.concatenate([obs, new_goal]))
 
+        self.normalizer.update(np.array(inputs_to_normalize))
         self.rb.on_episode_end()
 
     def _learn(self):
@@ -125,6 +150,9 @@ class HER_TD3Agent:
         reward = torch.Tensor(sample['reward'])
         next_input = torch.Tensor(np.concatenate([sample['next_obs'], sample['goal']], axis=1))
         done = torch.Tensor(sample['done'])
+
+        input = self.normalizer.normalize(input).float()
+        next_input = self.normalizer.normalize(next_input).float()
 
         Q_current1, Q_current2 = self.critic(input, action)
         with torch.no_grad():
@@ -153,8 +181,8 @@ class HER_TD3Agent:
             actor_loss.backward()
             self.actor_optimizer.step()
 
-            for t_params, e_params in zip(self.actor_target.parameters(), self.actor.parameters()):
-                t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-            for t_params, e_params in zip(self.critic_target.parameters(), self.critic.parameters()):
-                t_params.data.copy_(self.tau * e_params.data + (1 - self.tau) * t_params.data)
+            for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)

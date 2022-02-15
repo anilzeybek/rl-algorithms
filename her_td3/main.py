@@ -17,7 +17,7 @@ def read_hyperparams():
 
 def get_args():
     parser = argparse.ArgumentParser(description='options')
-    parser.add_argument('--env_name', type=str, default='FetchReach-v1')
+    parser.add_argument('--env_name', type=str, default='FetchPush-v1')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--seed', type=int, default=0)
 
@@ -33,7 +33,6 @@ def test(env):
         action_bounds={"low": env.action_space.low, "high": env.action_space.high},
         compute_reward_func=env.compute_reward,
         env_name=env.unwrapped.spec.id,
-        train_mode=False
     )
     agent.load()
 
@@ -42,14 +41,14 @@ def test(env):
         score = 0
         done = False
         while not done:
-            action = agent.act(env_dict["observation"], env_dict["desired_goal"])
+            action = agent.act(env_dict["observation"], env_dict["desired_goal"], train_mode=False)
             next_env_dict, reward, done, _ = env.step(action)
             env.render()
 
             env_dict = next_env_dict
             score += reward
 
-        print(score)
+        print(f"score: {score:.2f}")
 
 
 def train(env):
@@ -63,6 +62,8 @@ def train(env):
         compute_reward_func=env.compute_reward,
         k_future=hyperparams["k_future"],
         env_name=env.unwrapped.spec.id,
+        expl_noise=hyperparams['expl_noise'],
+        start_timesteps=hyperparams['start_timesteps'],
         buffer_size=hyperparams['buffer_size'],
         actor_lr=hyperparams['actor_lr'],
         critic_lr=hyperparams['critic_lr'],
@@ -72,7 +73,6 @@ def train(env):
         policy_noise=hyperparams['policy_noise'],
         noise_clip=hyperparams['noise_clip'],
         policy_freq=hyperparams['policy_freq'],
-        train_mode=True
     )
 
     start = time()
@@ -94,9 +94,7 @@ def train(env):
         scores.append(score)
         mean_score = np.mean(scores)
 
-        print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}', end="")
-        if i % 10 == 0:
-            print(f'\rEpisode: {i}/{max_episodes} \tAverage Score: {mean_score:.2f}')
+        print(f'ep: {i}/{max_episodes} | score: {mean_score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
@@ -112,6 +110,7 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     env.seed(args.seed)
+    env.action_space.seed(args.seed)
 
     if args.test:
         test(env)
