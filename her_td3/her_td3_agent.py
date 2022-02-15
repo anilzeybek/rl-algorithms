@@ -60,7 +60,7 @@ class HER_TD3Agent:
             "next_achieved_goal": []
         }
 
-        self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
+        self.normalizer = Normalizer(self.obs_dim+self.goal_dim, default_clip_range=5)
 
     def act(self, obs, goal, train_mode=True):
         with torch.no_grad():
@@ -143,8 +143,8 @@ class HER_TD3Agent:
 
     def _learn(self):
         self.total_it += 1
-        sample = self.rb.sample(self.batch_size)
 
+        sample = self.rb.sample(self.batch_size)
         input = torch.Tensor(np.concatenate([sample['obs'], sample['goal']], axis=1))
         action = torch.Tensor(sample['action'])
         reward = torch.Tensor(sample['reward'])

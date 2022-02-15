@@ -81,6 +81,9 @@ def train(env):
     scores = deque(maxlen=10)
     for i in range(1, max_episodes+1):
         env_dict = env.reset()
+        while np.linalg.norm(env_dict["achieved_goal"] - env_dict["desired_goal"]) <= 0.05:
+            env_dict = env.reset()
+
         score = 0
         done = False
         while not done:
