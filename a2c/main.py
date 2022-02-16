@@ -4,7 +4,6 @@ import numpy as np
 import json
 import torch
 import argparse
-from collections import deque
 from a2c_agent import A2CAgent
 from time import time
 
@@ -63,7 +62,6 @@ def train(env):
     start = time()
 
     max_episodes = hyperparams['max_episodes']
-    scores = deque(maxlen=10)
     for i in range(1, max_episodes+1):
         obs = env.reset()
         score = 0
@@ -77,10 +75,7 @@ def train(env):
             obs = next_obs
             score += reward
 
-        scores.append(score)
-        mean_score = np.mean(scores)
-
-        print(f'ep: {i}/{max_episodes} | score: {mean_score:.2f}')
+        print(f'ep: {i}/{max_episodes} | score: {score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
