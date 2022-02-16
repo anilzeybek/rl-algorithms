@@ -46,8 +46,7 @@ class HER_TD3Agent:
             "action": {"shape": self.action_dim},
             "reward": {},
             "next_obs": {"shape": self.obs_dim},
-            "goal": {"shape": self.goal_dim},
-            "done": {}
+            "goal": {"shape": self.goal_dim}
         })
         self.total_it = 0
         self.t = 0
@@ -121,9 +120,8 @@ class HER_TD3Agent:
             next_obs = episode_dict['next_obs'][t]
             goal = episode_dict['desired_goal'][t]
             next_achieved = episode_dict['next_achieved_goal'][t]
-            done = reward + 1
 
-            self.rb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, goal=goal, done=done)
+            self.rb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, goal=goal)
             inputs_to_normalize.append(np.concatenate([obs, goal]))
 
             if episode_len > 1:
@@ -132,10 +130,8 @@ class HER_TD3Agent:
 
                     new_goal = episode_dict['next_achieved_goal'][future_idx]
                     new_reward = self.compute_reward_func(next_achieved, new_goal, None)
-                    new_done = new_reward + 1
 
-                    self.rb.add(obs=obs, action=action, reward=new_reward,
-                                next_obs=next_obs, goal=new_goal, done=new_done)
+                    self.rb.add(obs=obs, action=action, reward=new_reward, next_obs=next_obs, goal=new_goal)
                     inputs_to_normalize.append(np.concatenate([obs, new_goal]))
 
         self.normalizer.update(np.array(inputs_to_normalize))
@@ -149,7 +145,6 @@ class HER_TD3Agent:
         action = torch.Tensor(sample['action'])
         reward = torch.Tensor(sample['reward'])
         next_input = torch.Tensor(np.concatenate([sample['next_obs'], sample['goal']], axis=1))
-        done = torch.Tensor(sample['done'])
 
         input = self.normalizer.normalize(input).float()
         next_input = self.normalizer.normalize(next_input).float()
@@ -166,7 +161,7 @@ class HER_TD3Agent:
 
             Q1_target_next, Q2_target_next = self.critic_target(next_input, next_actions)
             Q_target_next = torch.min(Q1_target_next, Q2_target_next)
-            Q_target = reward + self.gamma * Q_target_next * (1 - done)
+            Q_target = reward + self.gamma * Q_target_next
 
         critic_loss = F.mse_loss(Q_current1, Q_target) + F.mse_loss(Q_current2, Q_target)
 

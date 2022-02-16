@@ -1,20 +1,24 @@
-make agent init signature default values as in json file
-make agent init signatures aligned
-fix prioritized dqn
-if done: can be problematic since we use real_done for it (maybe store from main?)
+- make agent init signature default values as in json file
 
-[x] dqn
-[x] double dqn
-[x] dueling dqn
-[x] prioritized dqn
-[x] reinforce
-[x] a2c
-[x] ddpg
-[ ] maddpg/matd3
-[x] td3
-[ ] sac
-[ ] trpo
-[ ] ppo
-[ ] td3 her
-[ ] rnd
-[ ] apex
+- make agent init signatures aligned
+
+- prioritized dqn seems to work not that good, check it out
+
+- "if done:" can be problematic since we use real_done for it (maybe store from main?)
+
+- implement:
+    [x] dqn
+    [x] double dqn
+    [x] dueling dqn
+    [x] prioritized dqn
+    [x] reinforce
+    [x] a2c
+    [x] ddpg
+    [ ] maddpg/matd3
+    [x] td3
+    [ ] sac
+    [ ] trpo
+    [ ] ppo
+    [ ] td3 her
+    [ ] rnd
+    [ ] apex

@@ -9,11 +9,10 @@ class Normalizer:
         # some local information
         self.local_sum = np.zeros(self.size, np.float32)
         self.local_sumsq = np.zeros(self.size, np.float32)
-        self.local_count = np.zeros(1, np.float32)
         # get the total sum sumsq and sum count
         self.total_sum = np.zeros(self.size, np.float32)
         self.total_sumsq = np.zeros(self.size, np.float32)
-        self.total_count = np.ones(1, np.float32)
+        self.total_count = 1
         # get the mean and std
         self.mean = np.zeros(self.size, np.float32)
         self.std = np.ones(self.size, np.float32)
@@ -24,19 +23,13 @@ class Normalizer:
         # do the computing
         self.local_sum += v.sum(axis=0)
         self.local_sumsq += (np.square(v)).sum(axis=0)
-        self.local_count[0] += v.shape[0]
-
-        local_count = self.local_count.copy()
-        local_sum = self.local_sum.copy()
-        local_sumsq = self.local_sumsq.copy()
+        # update the total stuff
+        self.total_sum += self.local_sum
+        self.total_sumsq += self.local_sumsq
+        self.total_count += v.shape[0]
         # reset
-        self.local_count[...] = 0
         self.local_sum[...] = 0
         self.local_sumsq[...] = 0
-        # update the total stuff
-        self.total_count += local_count
-        self.total_sum += local_sum
-        self.total_sumsq += local_sumsq
         # calculate the new mean and std
         self.mean = self.total_sum / self.total_count
         self.std = np.sqrt(np.maximum(np.square(self.eps), (self.total_sumsq / self.total_count) - np.square(

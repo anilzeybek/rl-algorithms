@@ -1,5 +1,5 @@
 {
-    "max_episodes": 20000,
+    "max_episodes": 15000,
     "start_timesteps": 25000,
     "k_future": 4,
     "buffer_size": 1000000,

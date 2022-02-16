@@ -4,7 +4,6 @@ import numpy as np
 import json
 import torch
 import argparse
-from collections import deque
 from her_td3_agent import HER_TD3Agent
 from time import time
 
@@ -78,7 +77,6 @@ def train(env):
     start = time()
 
     max_episodes = hyperparams['max_episodes']
-    scores = deque(maxlen=10)
     for i in range(1, max_episodes+1):
         env_dict = env.reset()
         while np.linalg.norm(env_dict["achieved_goal"] - env_dict["desired_goal"]) <= 0.05:
@@ -94,10 +92,7 @@ def train(env):
             env_dict = next_env_dict
             score += reward
 
-        scores.append(score)
-        mean_score = np.mean(scores)
-
-        print(f'ep: {i}/{max_episodes} | score: {mean_score:.2f}')
+        print(f'ep: {i}/{max_episodes} | score: {score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
