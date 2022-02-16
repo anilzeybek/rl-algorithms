@@ -40,16 +40,18 @@ class A2CAgent:
         with torch.no_grad():
             V_target = reward + self.gamma * self.critic_network(next_obs) * (1 - done)
 
-        self.critic_optimizer.zero_grad()
         critic_loss = F.mse_loss(V_current, V_target)
+
+        self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
 
         with torch.no_grad():
             advantage = (V_target - V_current)
 
-        self.actor_optimizer.zero_grad()
         actor_loss = -(advantage * self.log_prob)
+
+        self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
 
