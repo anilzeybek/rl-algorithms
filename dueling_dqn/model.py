@@ -7,7 +7,6 @@ class DuelingNetwork(nn.Module):
         super(DuelingNetwork, self).__init__()
 
         self.fc1 = nn.Linear(obs_dim, 64)
-        self.fc2 = nn.Linear(64, 64)
 
         self.v1 = nn.Linear(64, 64)
         self.v2 = nn.Linear(64, 1)
@@ -17,7 +16,6 @@ class DuelingNetwork(nn.Module):
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
 
         v = F.relu(self.v1(x))
         v = self.v2(v)
