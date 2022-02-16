@@ -74,14 +74,11 @@ def train(env):
     for i in range(1, max_episodes+1):
         obs = env.reset()
         score = 0
-        episode_timesteps = 0
         done = False
         while not done:
-            episode_timesteps += 1
-
             action = agent.act(obs)
             next_obs, reward, done, _ = env.step(action)
-            real_done = done if episode_timesteps < env._max_episode_steps else False
+            real_done = done if env._elapsed_steps < env._max_episode_steps else False
 
             agent.step(obs, action, reward, next_obs, real_done)
             obs = next_obs

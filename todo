@@ -1,7 +1,7 @@
-use real_done for each env (her_td3 remained)
-make agent init signatures aligned
 make agent init signature default values as in json file
+make agent init signatures aligned
 fix prioritized dqn
+if done: can be problematic since we use real_done for it (maybe store from main?)
 
 [x] dqn
 [x] double dqn
