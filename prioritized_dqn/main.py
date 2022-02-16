@@ -48,8 +48,6 @@ def test(env):
 
 
 def train(env):
-    # TODO: this has problems
-
     hyperparams = read_hyperparams()
 
     agent = PrioritizedDQNAgent(

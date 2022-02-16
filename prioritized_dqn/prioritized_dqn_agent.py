@@ -64,6 +64,7 @@ class PrioritizedDQNAgent:
 
     def _learn(self):
         sample = self.prb.sample(self.batch_size, beta=self.beta)
+        self.beta = min(1.0, self.beta + 5e-6)
 
         obs = torch.Tensor(sample['obs'])
         action = torch.Tensor(sample['action']).long()
@@ -80,9 +81,9 @@ class PrioritizedDQNAgent:
             error = (Q_target - Q_current).abs().numpy()
 
         self.prb.update_priorities(sample['indexes'], error)
+        loss = (torch.Tensor(sample['weights']) * F.mse_loss(Q_current, Q_target)).mean()
 
         self.optimizer.zero_grad()
-        loss = (torch.Tensor(sample['weights']) * F.mse_loss(Q_current, Q_target)).mean()
         loss.backward()
         self.optimizer.step()
 
