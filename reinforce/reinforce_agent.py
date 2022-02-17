@@ -37,10 +37,10 @@ class REINFORCEAgent:
 
     def save(self):
         os.makedirs(f"saved_networks/reinforce/{self.env_name}", exist_ok=True)
-        torch.save(self.policy.state_dict(), f"saved_networks/reinforce/{self.env_name}/Q_network.pt")
+        torch.save(self.policy.state_dict(), f"saved_networks/reinforce/{self.env_name}/policy.pt")
 
     def load(self):
-        self.policy.load_state_dict(torch.load(f"saved_networks/reinforce/{self.env_name}/Q_network.pt"))
+        self.policy.load_state_dict(torch.load(f"saved_networks/reinforce/{self.env_name}/policy.pt"))
 
     def _learn(self):
         G = torch.zeros_like(torch.Tensor(self.reward_memory))
