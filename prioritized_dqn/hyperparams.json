@@ -5,9 +5,9 @@
     "batch_size": 128,
     "gamma": 0.99,
     "tau": 0.005,
-    "alpha": 0.6,
-    "beta": 0.4,
     "eps_start": 1.0,
     "eps_end": 0.01,
-    "eps_decay": 0.995
+    "eps_decay": 0.995,
+    "alpha": 0.6,
+    "beta": 0.4
 }

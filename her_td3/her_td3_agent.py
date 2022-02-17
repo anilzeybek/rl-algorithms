@@ -10,18 +10,18 @@ from normalizer import Normalizer
 
 
 class HER_TD3Agent:
-    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05, policy_noise=0.05, noise_clip=0.1, policy_freq=4):
+    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=1000000, actor_lr=1e-3, critic_lr=1e-3, batch_size=128, gamma=0.98, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.goal_dim = goal_dim
         self.action_bounds = action_bounds
-        self.start_timesteps = start_timesteps
         self.compute_reward_func = compute_reward_func
-        self.k_future = k_future
         self.env_name = env_name
         self.expl_noise = expl_noise
+        self.start_timesteps = start_timesteps
+        self.k_future = k_future
         self.buffer_size = buffer_size
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr

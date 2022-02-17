@@ -9,15 +9,15 @@ import os
 
 
 class DDPGAgent:
-    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=65536, actor_lr=1e-3, critic_lr=1e-3, batch_size=64, gamma=0.99, tau=0.05):
+    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=200000, actor_lr=3e-4, critic_lr=3e-4, batch_size=256, gamma=0.99, tau=0.005):
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.action_bounds = action_bounds
-        self.start_timesteps = start_timesteps
         self.env_name = env_name
         self.expl_noise = expl_noise
+        self.start_timesteps = start_timesteps
         self.buffer_size = buffer_size
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr

@@ -1,9 +1,9 @@
 {
     "max_episodes": 10000,
+    "expl_noise": 0.1,
     "start_timesteps": 25000,
     "k_future": 4,
     "buffer_size": 1000000,
-    "expl_noise": 0.1,
     "actor_lr": 1e-3,
     "critic_lr": 1e-3,
     "batch_size": 128,
