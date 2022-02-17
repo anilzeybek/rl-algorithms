@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from model import PolicyNetwork, VNetwork
+from models import Actor, Critic
 import torch.optim as optim
 import os
 
@@ -16,15 +16,15 @@ class A2CAgent:
 
         self.log_prob = None
 
-        self.actor_network = PolicyNetwork(obs_dim, action_dim)
-        self.critic_network = VNetwork(obs_dim)
+        self.actor = Actor(obs_dim, action_dim)
+        self.critic = Critic(obs_dim)
 
-        self.actor_optimizer = optim.Adam(self.actor_network.parameters(), lr=self.actor_lr)
-        self.critic_optimizer = optim.Adam(self.critic_network.parameters(), lr=self.critic_lr)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
     def act(self, obs):
         obs = torch.from_numpy(obs).float()
-        probabilities = F.softmax(self.actor_network(obs), dim=0)
+        probabilities = F.softmax(self.actor(obs), dim=0)
 
         action_probs = torch.distributions.Categorical(probabilities)
         action = action_probs.sample()
@@ -36,9 +36,9 @@ class A2CAgent:
         obs = torch.from_numpy(obs).float()
         next_obs = torch.from_numpy(next_obs).float()
 
-        V_current = self.critic_network(obs)
+        V_current = self.critic(obs)
         with torch.no_grad():
-            V_target = reward + self.gamma * self.critic_network(next_obs) * (1 - done)
+            V_target = reward + self.gamma * self.critic(next_obs) * (1 - done)
 
         critic_loss = F.mse_loss(V_current, V_target)
 
@@ -57,7 +57,7 @@ class A2CAgent:
 
     def save(self):
         os.makedirs(f"saved_networks/a2c/{self.env_name}", exist_ok=True)
-        torch.save(self.actor_network.state_dict(), f"saved_networks/a2c/{self.env_name}/actor_network.pt")
+        torch.save(self.actor.state_dict(), f"saved_networks/a2c/{self.env_name}/actor.pt")
 
     def load(self):
-        self.actor_network.load_state_dict(torch.load(f"saved_networks/a2c/{self.env_name}/actor_network.pt"))
+        self.actor.load_state_dict(torch.load(f"saved_networks/a2c/{self.env_name}/actor.pt"))
