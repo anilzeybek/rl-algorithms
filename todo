@@ -1,10 +1,10 @@
-- make agent init signature default values as in json file
-
-- make agent init signatures aligned
-
 - prioritized dqn seems to work not that good, check it out
 
 - "if done:" can be problematic since we use real_done for it (maybe store from main?)
+
+- better readme
+
+- check roles of 2 additional improvements of her_td3
 
 - implement:
     [x] dqn
@@ -19,6 +19,6 @@
     [ ] sac
     [ ] trpo
     [ ] ppo
-    [ ] td3 her
+    [x] td3 her
     [ ] rnd
     [ ] apex
