@@ -55,11 +55,12 @@ class HER_TD3Agent:
             "action": [],
             "reward": [],
             "next_obs": [],
+            "achieved_goal": [],
             "desired_goal": [],
             "next_achieved_goal": []
         }
 
-        self.normalizer = Normalizer(self.obs_dim+self.goal_dim, default_clip_range=5)
+        self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
 
     def act(self, obs, goal, train_mode=True):
         with torch.no_grad():
@@ -86,6 +87,7 @@ class HER_TD3Agent:
         self.exec_dict["action"].append(action)
         self.exec_dict["reward"].append(reward)
         self.exec_dict["next_obs"].append(next_env_dict["observation"])
+        self.exec_dict["achieved_goal"].append(env_dict["achieved_goal"])
         self.exec_dict["desired_goal"].append(env_dict["desired_goal"])
         self.exec_dict["next_achieved_goal"].append(next_env_dict["achieved_goal"])
 
@@ -128,7 +130,7 @@ class HER_TD3Agent:
                 for _ in range(self.k_future):
                     future_idx = np.random.randint(low=t, high=episode_len)
 
-                    new_goal = episode_dict['next_achieved_goal'][future_idx]
+                    new_goal = episode_dict['achieved_goal'][future_idx]
                     new_reward = self.compute_reward_func(next_achieved, new_goal, None)
 
                     self.rb.add(obs=obs, action=action, reward=new_reward, next_obs=next_obs, goal=new_goal)
