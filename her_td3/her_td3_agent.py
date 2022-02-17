@@ -164,6 +164,7 @@ class HER_TD3Agent:
             Q1_target_next, Q2_target_next = self.critic_target(next_input, next_actions)
             Q_target_next = torch.min(Q1_target_next, Q2_target_next)
             Q_target = reward + self.gamma * Q_target_next
+            Q_target = torch.clamp(Q_target, -1 / (1 - self.gamma), 0)
 
         critic_loss = F.mse_loss(Q_current1, Q_target) + F.mse_loss(Q_current2, Q_target)
 
@@ -172,7 +173,9 @@ class HER_TD3Agent:
         self.critic_optimizer.step()
 
         if self.total_it % self.policy_freq == 0:
-            actor_loss = -self.critic(input, self.actor(input))[0].mean()
+            a = self.actor(input)
+            actor_loss = -self.critic(input, a)[0].mean()
+            actor_loss += a.pow(2).mean()
 
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
