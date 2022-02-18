@@ -13,10 +13,11 @@
     [x] prioritized dqn
     [x] reinforce
     [x] a2c
+    [ ] a3c
     [x] ddpg
     [ ] maddpg/matd3
     [x] td3
-    [ ] sac
+    [x] sac
     [ ] trpo
     [ ] ppo
     [x] td3 her
