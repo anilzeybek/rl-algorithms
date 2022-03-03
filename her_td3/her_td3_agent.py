@@ -10,7 +10,7 @@ from normalizer import Normalizer
 
 
 class HER_TD3Agent:
-    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=1000000, actor_lr=1e-3, critic_lr=1e-3, batch_size=128, gamma=0.98, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
+    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=1000000, actor_lr=1e-3, critic_lr=1e-3, batch_size=128, gamma=0.98, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2, use_saved=False):
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim
@@ -37,6 +37,9 @@ class HER_TD3Agent:
 
         self.critic = Critic(obs_dim, action_dim, goal_dim)
         self.critic_target = deepcopy(self.critic)
+
+        if use_saved:
+            self.load()
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
@@ -101,13 +104,15 @@ class HER_TD3Agent:
 
     def save(self):
         os.makedirs(f"saved_networks/her_td3/{self.env_name}", exist_ok=True)
-        torch.save({"actor_state_dict": self.actor.state_dict(),
+        torch.save({"actor": self.actor.state_dict(),
+                    "critic": self.critic.state_dict(),
                     "normalizer_mean": self.normalizer.mean,
-                    "normalizer_std": self.normalizer.std}, f"saved_networks/her_td3/{self.env_name}/actor.pt")
+                    "normalizer_std": self.normalizer.std}, f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
 
     def load(self):
-        checkpoint = torch.load(f"saved_networks/her_td3/{self.env_name}/actor.pt")
-        self.actor.load_state_dict(checkpoint["actor_state_dict"])
+        checkpoint = torch.load(f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
+        self.actor.load_state_dict(checkpoint["actor"])
+        self.critic.load_state_dict(checkpoint["critic"])
         self.normalizer.mean = checkpoint["normalizer_mean"]
         self.normalizer.std = checkpoint["normalizer_std"]
 

@@ -18,6 +18,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='LunarLander-v2')
     parser.add_argument('--test', default=False, action='store_true')
+    parser.add_argument('--use_saved', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
@@ -47,7 +48,7 @@ def test(env):
         print(f"score: {score:.2f}")
 
 
-def train(env):
+def train(env, use_saved):
     hyperparams = read_hyperparams()
 
     agent = DuelingDQNAgent(
@@ -62,6 +63,7 @@ def train(env):
         eps_start=hyperparams['eps_start'],
         eps_end=hyperparams['eps_end'],
         eps_decay=hyperparams['eps_decay'],
+        use_saved=use_saved
     )
 
     start = time()
@@ -79,6 +81,9 @@ def train(env):
             agent.step(obs, action, reward, next_obs, real_done)
             obs = next_obs
             score += reward
+
+        if i % 100 == 0:
+            agent.save()
 
         print(f'ep: {i}/{max_episodes} | score: {score:.2f}')
 
@@ -101,7 +106,7 @@ def main():
     if args.test:
         test(env)
     else:
-        train(env)
+        train(env, args.use_saved)
 
 
 if __name__ == "__main__":

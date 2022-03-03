@@ -9,7 +9,7 @@ import os
 
 
 class DuelingDQNAgent:
-    def __init__(self, obs_dim, action_dim, env_name, buffer_size=200000, lr=1e-3, batch_size=128, gamma=0.99, tau=0.005, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
+    def __init__(self, obs_dim, action_dim, env_name, buffer_size=200000, lr=1e-3, batch_size=128, gamma=0.99, tau=0.005, eps_start=1.0, eps_end=0.01, eps_decay=0.995, use_saved=False):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -24,6 +24,9 @@ class DuelingDQNAgent:
 
         self.dueling_network = DuelingNetwork(obs_dim, action_dim)
         self.target_network = deepcopy(self.dueling_network)
+
+        if use_saved:
+            self.load()
 
         self.optimizer = optim.Adam(self.dueling_network.parameters(), lr=self.lr)
 

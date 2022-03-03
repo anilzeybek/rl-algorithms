@@ -6,7 +6,7 @@ import os
 
 
 class A2CAgent:
-    def __init__(self, obs_dim, action_dim, env_name, actor_lr=1e-3, critic_lr=1e-3, gamma=0.99):
+    def __init__(self, obs_dim, action_dim, env_name, actor_lr=1e-3, critic_lr=1e-3, gamma=0.99, use_saved=False):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -18,6 +18,9 @@ class A2CAgent:
 
         self.actor = Actor(obs_dim, action_dim)
         self.critic = Critic(obs_dim)
+
+        if use_saved:
+            self.load()
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
@@ -57,7 +60,11 @@ class A2CAgent:
 
     def save(self):
         os.makedirs(f"saved_networks/a2c/{self.env_name}", exist_ok=True)
-        torch.save(self.actor.state_dict(), f"saved_networks/a2c/{self.env_name}/actor.pt")
+        torch.save({"actor": self.actor.state_dict(),
+                    "critic": self.critic.state_dict()},
+                   f"saved_networks/a2c/{self.env_name}/actor_critic.pt")
 
     def load(self):
-        self.actor.load_state_dict(torch.load(f"saved_networks/a2c/{self.env_name}/actor.pt"))
+        checkpoint = torch.load(f"saved_networks/a2c/{self.env_name}/actor_critic.pt")
+        self.actor.load_state_dict(checkpoint["actor"])
+        self.critic.load_state_dict(checkpoint["critic"])
