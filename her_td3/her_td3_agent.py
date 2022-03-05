@@ -38,6 +38,8 @@ class HER_TD3Agent:
         self.critic = Critic(obs_dim, action_dim, goal_dim)
         self.critic_target = deepcopy(self.critic)
 
+        self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
+
         if use_saved:
             self.load()
 
@@ -62,8 +64,6 @@ class HER_TD3Agent:
             "desired_goal": [],
             "next_achieved_goal": []
         }
-
-        self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
 
     def act(self, obs, goal, train_mode=True):
         with torch.no_grad():
