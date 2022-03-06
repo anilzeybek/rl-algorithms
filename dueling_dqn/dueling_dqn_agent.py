@@ -9,7 +9,7 @@ import os
 
 
 class DuelingDQNAgent:
-    def __init__(self, obs_dim, action_dim, env_name, buffer_size=200000, lr=1e-3, batch_size=128, gamma=0.99, tau=0.005, eps_start=1.0, eps_end=0.01, eps_decay=0.995, use_saved=False):
+    def __init__(self, obs_dim, action_dim, env_name, buffer_size=200000, lr=1e-3, batch_size=128, gamma=0.99, tau=0.005, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -24,9 +24,6 @@ class DuelingDQNAgent:
 
         self.dueling_network = DuelingNetwork(obs_dim, action_dim)
         self.target_network = deepcopy(self.dueling_network)
-
-        if use_saved:
-            self.load()
 
         self.optimizer = optim.Adam(self.dueling_network.parameters(), lr=self.lr)
 
@@ -57,10 +54,22 @@ class DuelingDQNAgent:
 
     def save(self):
         os.makedirs(f"saved_networks/dueling_dqn/{self.env_name}", exist_ok=True)
-        torch.save(self.dueling_network.state_dict(), f"saved_networks/dueling_dqn/{self.env_name}/Q_network.pt")
+        torch.save({
+            "dueling_network": self.dueling_network.state_dict(),
+            "eps": self.eps
+        }, f"saved_networks/dueling_dqn/{self.env_name}/dueling_network.pt")
+
+        self.rb.save_transitions(f"saved_networks/dueling_dqn/{self.env_name}/rb.npz")
 
     def load(self):
-        self.dueling_network.load_state_dict(torch.load(f"saved_networks/dueling_dqn/{self.env_name}/Q_network.pt"))
+        checkpoint = torch.load(f"saved_networks/dueling_dqn/{self.env_name}/dueling_network.pt")
+
+        self.dueling_network.load_state_dict(checkpoint["dueling_network"])
+        self.target_network = deepcopy(self.dueling_network)
+
+        self.eps = checkpoint["eps"]
+
+        self.rb.load_transitions(f"saved_networks/dueling_dqn/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

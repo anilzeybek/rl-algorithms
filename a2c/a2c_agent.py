@@ -6,7 +6,7 @@ import os
 
 
 class A2CAgent:
-    def __init__(self, obs_dim, action_dim, env_name, actor_lr=1e-3, critic_lr=1e-3, gamma=0.99, use_saved=False):
+    def __init__(self, obs_dim, action_dim, env_name, actor_lr=1e-3, critic_lr=1e-3, gamma=0.99):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -18,9 +18,6 @@ class A2CAgent:
 
         self.actor = Actor(obs_dim, action_dim)
         self.critic = Critic(obs_dim)
-
-        if use_saved:
-            self.load()
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)

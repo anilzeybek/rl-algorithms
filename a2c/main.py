@@ -18,7 +18,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='LunarLander-v2')
     parser.add_argument('--test', default=False, action='store_true')
-    parser.add_argument('--use_saved', default=False, action='store_true', help="use already saved policy in training")
+    parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
@@ -48,7 +48,7 @@ def test(env):
         print(f"score: {score:.2f}")
 
 
-def train(env, use_saved):
+def train(env, cont):
     hyperparams = read_hyperparams()
 
     agent = A2CAgent(
@@ -58,8 +58,10 @@ def train(env, use_saved):
         actor_lr=hyperparams['actor_lr'],
         critic_lr=hyperparams['critic_lr'],
         gamma=hyperparams['gamma'],
-        use_saved=use_saved
     )
+    
+    if cont:
+        agent.load()
 
     start = time()
 
@@ -101,7 +103,7 @@ def main():
     if args.test:
         test(env)
     else:
-        train(env, args.use_saved)
+        train(env, args.cont)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import os
 
 
 class REINFORCEAgent:
-    def __init__(self, obs_dim, action_dim, env_name, lr=1e-3, gamma=0.99, use_saved=False):
+    def __init__(self, obs_dim, action_dim, env_name, lr=1e-3, gamma=0.99):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
@@ -14,9 +14,6 @@ class REINFORCEAgent:
         self.gamma = gamma
 
         self.policy = PolicyNetwork(self.obs_dim, self.action_dim)
-
-        if use_saved:
-            self.load()
 
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.lr)
 
