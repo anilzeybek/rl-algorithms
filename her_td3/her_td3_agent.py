@@ -10,7 +10,7 @@ from normalizer import Normalizer
 
 
 class HER_TD3Agent:
-    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=1000000, actor_lr=1e-3, critic_lr=1e-3, batch_size=128, gamma=0.98, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2, use_saved=False):
+    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=1000000, actor_lr=1e-3, critic_lr=1e-3, batch_size=128, gamma=0.98, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim
@@ -40,9 +40,6 @@ class HER_TD3Agent:
 
         self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
 
-        if use_saved:
-            self.load()
-
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
@@ -53,8 +50,6 @@ class HER_TD3Agent:
             "next_obs": {"shape": self.obs_dim},
             "goal": {"shape": self.goal_dim}
         })
-        self.total_it = 0
-        self.t = 0
         self.exec_dict = {
             "obs": [],
             "action": [],
@@ -64,6 +59,7 @@ class HER_TD3Agent:
             "desired_goal": [],
             "next_achieved_goal": []
         }
+        self.t = 0
 
     def act(self, obs, goal, train_mode=True):
         with torch.no_grad():
@@ -107,14 +103,33 @@ class HER_TD3Agent:
         torch.save({"actor": self.actor.state_dict(),
                     "critic": self.critic.state_dict(),
                     "normalizer_mean": self.normalizer.mean,
-                    "normalizer_std": self.normalizer.std}, f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
+                    "normalizer_std": self.normalizer.std,
+                    "normalizer_running_sum": self.normalizer.running_sum,
+                    "normalizer_running_sumsq": self.normalizer.running_sumsq,
+                    "normalizer_running_count": self.normalizer.running_count,
+                    "t": self.t
+                    }, f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
+
+        self.rb.save_transitions(f"saved_networks/her_td3/{self.env_name}/rb.npz")
 
     def load(self):
         checkpoint = torch.load(f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
+
         self.actor.load_state_dict(checkpoint["actor"])
+        self.actor_target = deepcopy(self.actor)
+
         self.critic.load_state_dict(checkpoint["critic"])
+        self.critic_target = deepcopy(self.critic)
+
         self.normalizer.mean = checkpoint["normalizer_mean"]
         self.normalizer.std = checkpoint["normalizer_std"]
+        self.normalizer.running_sum = checkpoint["normalizer_running_sum"]
+        self.normalizer.running_sumsq = checkpoint["normalizer_running_sumsq"]
+        self.normalizer.running_count = checkpoint["normalizer_running_count"]
+
+        self.t = checkpoint["t"]
+
+        self.rb.load_transitions(f"saved_networks/her_td3/{self.env_name}/rb.npz")
 
     def _store(self, episode_dict):
         inputs_to_normalize = []
@@ -145,8 +160,6 @@ class HER_TD3Agent:
         self.rb.on_episode_end()
 
     def _learn(self):
-        self.total_it += 1
-
         sample = self.rb.sample(self.batch_size)
         input = torch.Tensor(np.concatenate([sample['obs'], sample['goal']], axis=1))
         action = torch.Tensor(sample['action'])
@@ -177,7 +190,7 @@ class HER_TD3Agent:
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        if self.total_it % self.policy_freq == 0:
+        if self.t % self.policy_freq == 0:
             a = self.actor(input)
             actor_loss = -self.critic(input, a)[0].mean()
             actor_loss += a.pow(2).mean()

@@ -9,7 +9,7 @@ import os
 
 
 class TD3Agent:
-    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=200000, actor_lr=1e-3, critic_lr=1e-3, batch_size=256, gamma=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2, use_saved=False):
+    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=200000, actor_lr=1e-3, critic_lr=1e-3, batch_size=256, gamma=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim
@@ -34,9 +34,6 @@ class TD3Agent:
         self.critic = Critic(obs_dim, action_dim)
         self.critic_target = deepcopy(self.critic)
 
-        if use_saved:
-            self.load()
-
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
@@ -47,7 +44,6 @@ class TD3Agent:
             "next_obs": {"shape": self.obs_dim},
             "done": {}
         })
-        self.total_it = 0
         self.t = 0
 
     def act(self, obs, train_mode=True):
@@ -80,17 +76,26 @@ class TD3Agent:
     def save(self):
         os.makedirs(f"saved_networks/td3/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
-                    "critic": self.critic.state_dict()},
-                   f"saved_networks/td3/{self.env_name}/actor_critic.pt")
+                    "critic": self.critic.state_dict(),
+                    "t": self.t
+                    }, f"saved_networks/td3/{self.env_name}/actor_critic.pt")
+
+        self.rb.save_transitions(f"saved_networks/td3/{self.env_name}/rb.npz")
 
     def load(self):
         checkpoint = torch.load(f"saved_networks/td3/{self.env_name}/actor_critic.pt")
+
         self.actor.load_state_dict(checkpoint["actor"])
+        self.actor_target = deepcopy(self.actor)
+
         self.critic.load_state_dict(checkpoint["critic"])
+        self.critic_target = deepcopy(self.critic)
+
+        self.t = checkpoint["t"]
+
+        self.rb.load_transitions(f"saved_networks/td3/{self.env_name}/rb.npz")
 
     def _learn(self):
-        self.total_it += 1
-
         sample = self.rb.sample(self.batch_size)
         obs = torch.Tensor(sample['obs'])
         action = torch.Tensor(sample['action'])
@@ -118,7 +123,7 @@ class TD3Agent:
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        if self.total_it % self.policy_freq == 0:
+        if self.t % self.policy_freq == 0:
             actor_loss = -self.critic(obs, self.actor(obs))[0].mean()
 
             self.actor_optimizer.zero_grad()

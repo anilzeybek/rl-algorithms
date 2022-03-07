@@ -9,7 +9,7 @@ import os
 
 
 class DDPGAgent:
-    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=200000, actor_lr=3e-4, critic_lr=3e-4, batch_size=256, gamma=0.99, tau=0.005, use_saved=False):
+    def __init__(self, obs_dim, action_dim, action_bounds, env_name, expl_noise=0.1, start_timesteps=25000, buffer_size=200000, actor_lr=3e-4, critic_lr=3e-4, batch_size=256, gamma=0.99, tau=0.005):
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim
@@ -30,9 +30,6 @@ class DDPGAgent:
 
         self.critic = Critic(obs_dim, action_dim)
         self.critic_target = deepcopy(self.critic)
-
-        if use_saved:
-            self.load()
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
@@ -76,13 +73,24 @@ class DDPGAgent:
     def save(self):
         os.makedirs(f"saved_networks/ddpg/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
-                    "critic": self.critic.state_dict()},
-                   f"saved_networks/ddpg/{self.env_name}/actor_critic.pt")
+                    "critic": self.critic.state_dict(),
+                    "t": self.t
+                    }, f"saved_networks/ddpg/{self.env_name}/actor_critic.pt")
+
+        self.rb.save_transitions(f"saved_networks/ddpg/{self.env_name}/rb.npz")
 
     def load(self):
         checkpoint = torch.load(f"saved_networks/ddpg/{self.env_name}/actor_critic.pt")
+
         self.actor.load_state_dict(checkpoint["actor"])
+        self.actor_target = deepcopy(self.actor)
+
         self.critic.load_state_dict(checkpoint["critic"])
+        self.critic_target = deepcopy(self.critic)
+
+        self.t = checkpoint["t"]
+
+        self.rb.load_transitions(f"saved_networks/ddpg/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

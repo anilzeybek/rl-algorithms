@@ -18,7 +18,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--test', default=False, action='store_true')
-    parser.add_argument('--use_saved', default=False, action='store_true', help="use already saved policy in training")
+    parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
@@ -49,7 +49,7 @@ def test(env):
         print(f"score: {score:.2f}")
 
 
-def train(env, use_saved):
+def train(env, cont):
     hyperparams = read_hyperparams()
 
     agent = TD3Agent(
@@ -67,9 +67,11 @@ def train(env, use_saved):
         tau=hyperparams['tau'],
         policy_noise=hyperparams['policy_noise'],
         noise_clip=hyperparams['noise_clip'],
-        policy_freq=hyperparams['policy_freq'],
-        use_saved=use_saved
+        policy_freq=hyperparams['policy_freq']
     )
+
+    if cont:
+        agent.load()
 
     start = time()
 
@@ -111,7 +113,7 @@ def main():
     if args.test:
         test(env)
     else:
-        train(env, args.use_saved)
+        train(env, args.cont)
 
 
 if __name__ == "__main__":
