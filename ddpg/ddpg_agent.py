@@ -77,8 +77,6 @@ class DDPGAgent:
                     "t": self.t
                     }, f"checkpoints/ddpg/{self.env_name}/actor_critic.pt")
 
-        self.rb.save_transitions(f"checkpoints/ddpg/{self.env_name}/rb.npz")
-
     def load(self):
         checkpoint = torch.load(f"checkpoints/ddpg/{self.env_name}/actor_critic.pt")
 
@@ -89,8 +87,6 @@ class DDPGAgent:
         self.critic_target = deepcopy(self.critic)
 
         self.t = checkpoint["t"]
-
-        self.rb.load_transitions(f"checkpoints/ddpg/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

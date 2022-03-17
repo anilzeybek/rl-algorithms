@@ -110,8 +110,6 @@ class HER_TD3Agent:
                     "t": self.t
                     }, f"checkpoints/her_td3/{self.env_name}/actor_critic.pt")
 
-        self.rb.save_transitions(f"checkpoints/her_td3/{self.env_name}/rb.npz")
-
     def load(self):
         checkpoint = torch.load(f"checkpoints/her_td3/{self.env_name}/actor_critic.pt")
 
@@ -128,8 +126,6 @@ class HER_TD3Agent:
         self.normalizer.running_count = checkpoint["normalizer_running_count"]
 
         self.t = checkpoint["t"]
-
-        self.rb.load_transitions(f"checkpoints/her_td3/{self.env_name}/rb.npz")
 
     def _store(self, episode_dict):
         inputs_to_normalize = []

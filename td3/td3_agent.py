@@ -80,8 +80,6 @@ class TD3Agent:
                     "t": self.t
                     }, f"checkpoints/td3/{self.env_name}/actor_critic.pt")
 
-        self.rb.save_transitions(f"checkpoints/td3/{self.env_name}/rb.npz")
-
     def load(self):
         checkpoint = torch.load(f"checkpoints/td3/{self.env_name}/actor_critic.pt")
 
@@ -92,8 +90,6 @@ class TD3Agent:
         self.critic_target = deepcopy(self.critic)
 
         self.t = checkpoint["t"]
-
-        self.rb.load_transitions(f"checkpoints/td3/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

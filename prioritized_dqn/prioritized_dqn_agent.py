@@ -63,8 +63,6 @@ class PrioritizedDQNAgent:
             "beta": self.beta
         }, f"checkpoints/prioritized_dqn/{self.env_name}/Q_network.pt")
 
-        self.prb.save_transitions(f"checkpoints/prioritized_dqn/{self.env_name}/prb.npz")
-
     def load(self):
         checkpoint = torch.load(f"checkpoints/prioritized_dqn/{self.env_name}/Q_network.pt")
 
@@ -73,8 +71,6 @@ class PrioritizedDQNAgent:
 
         self.eps = checkpoint["eps"]
         self.beta = checkpoint["beta"]
-
-        self.prb.load_transitions(f"checkpoints/prioritized_dqn/{self.env_name}/prb.npz")
 
     def _learn(self):
         sample = self.prb.sample(self.batch_size, beta=self.beta)

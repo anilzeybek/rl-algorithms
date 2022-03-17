@@ -59,8 +59,6 @@ class DQNAgent:
             "eps": self.eps
         }, f"checkpoints/dqn/{self.env_name}/Q_network.pt")
 
-        self.rb.save_transitions(f"checkpoints/dqn/{self.env_name}/rb.npz")
-
     def load(self):
         checkpoint = torch.load(f"checkpoints/dqn/{self.env_name}/Q_network.pt")
 
@@ -68,8 +66,6 @@ class DQNAgent:
         self.target_network = deepcopy(self.Q_network)
 
         self.eps = checkpoint["eps"]
-
-        self.rb.load_transitions(f"checkpoints/dqn/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

@@ -59,8 +59,6 @@ class DuelingDQNAgent:
             "eps": self.eps
         }, f"checkpoints/dueling_dqn/{self.env_name}/dueling_network.pt")
 
-        self.rb.save_transitions(f"checkpoints/dueling_dqn/{self.env_name}/rb.npz")
-
     def load(self):
         checkpoint = torch.load(f"checkpoints/dueling_dqn/{self.env_name}/dueling_network.pt")
 
@@ -68,8 +66,6 @@ class DuelingDQNAgent:
         self.target_network = deepcopy(self.dueling_network)
 
         self.eps = checkpoint["eps"]
-
-        self.rb.load_transitions(f"checkpoints/dueling_dqn/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)
