@@ -99,7 +99,7 @@ class HER_TD3Agent:
             self._learn()
 
     def save(self):
-        os.makedirs(f"saved_networks/her_td3/{self.env_name}", exist_ok=True)
+        os.makedirs(f"checkpoints/her_td3/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
                     "critic": self.critic.state_dict(),
                     "normalizer_mean": self.normalizer.mean,
@@ -108,12 +108,12 @@ class HER_TD3Agent:
                     "normalizer_running_sumsq": self.normalizer.running_sumsq,
                     "normalizer_running_count": self.normalizer.running_count,
                     "t": self.t
-                    }, f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
+                    }, f"checkpoints/her_td3/{self.env_name}/actor_critic.pt")
 
-        self.rb.save_transitions(f"saved_networks/her_td3/{self.env_name}/rb.npz")
+        self.rb.save_transitions(f"checkpoints/her_td3/{self.env_name}/rb.npz")
 
     def load(self):
-        checkpoint = torch.load(f"saved_networks/her_td3/{self.env_name}/actor_critic.pt")
+        checkpoint = torch.load(f"checkpoints/her_td3/{self.env_name}/actor_critic.pt")
 
         self.actor.load_state_dict(checkpoint["actor"])
         self.actor_target = deepcopy(self.actor)
@@ -129,7 +129,7 @@ class HER_TD3Agent:
 
         self.t = checkpoint["t"]
 
-        self.rb.load_transitions(f"saved_networks/her_td3/{self.env_name}/rb.npz")
+        self.rb.load_transitions(f"checkpoints/her_td3/{self.env_name}/rb.npz")
 
     def _store(self, episode_dict):
         inputs_to_normalize = []

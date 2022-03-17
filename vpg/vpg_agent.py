@@ -87,13 +87,13 @@ class VPGAgent:
             self._learn()
 
     def save(self):
-        os.makedirs(f"saved_networks/vpg/{self.env_name}", exist_ok=True)
+        os.makedirs(f"checkpoints/vpg/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
                     "critic": self.critic.state_dict()},
-                   f"saved_networks/vpg/{self.env_name}/actor_critic.pt")
+                   f"checkpoints/vpg/{self.env_name}/actor_critic.pt")
 
     def load(self):
-        checkpoint = torch.load(f"saved_networks/vpg/{self.env_name}/actor_critic.pt")
+        checkpoint = torch.load(f"checkpoints/vpg/{self.env_name}/actor_critic.pt")
         self.actor.load_state_dict(checkpoint["actor"])
         self.critic.load_state_dict(checkpoint["critic"])
 

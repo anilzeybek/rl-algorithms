@@ -53,23 +53,23 @@ class DuelingDQNAgent:
             self.rb.on_episode_end()
 
     def save(self):
-        os.makedirs(f"saved_networks/dueling_dqn/{self.env_name}", exist_ok=True)
+        os.makedirs(f"checkpoints/dueling_dqn/{self.env_name}", exist_ok=True)
         torch.save({
             "dueling_network": self.dueling_network.state_dict(),
             "eps": self.eps
-        }, f"saved_networks/dueling_dqn/{self.env_name}/dueling_network.pt")
+        }, f"checkpoints/dueling_dqn/{self.env_name}/dueling_network.pt")
 
-        self.rb.save_transitions(f"saved_networks/dueling_dqn/{self.env_name}/rb.npz")
+        self.rb.save_transitions(f"checkpoints/dueling_dqn/{self.env_name}/rb.npz")
 
     def load(self):
-        checkpoint = torch.load(f"saved_networks/dueling_dqn/{self.env_name}/dueling_network.pt")
+        checkpoint = torch.load(f"checkpoints/dueling_dqn/{self.env_name}/dueling_network.pt")
 
         self.dueling_network.load_state_dict(checkpoint["dueling_network"])
         self.target_network = deepcopy(self.dueling_network)
 
         self.eps = checkpoint["eps"]
 
-        self.rb.load_transitions(f"saved_networks/dueling_dqn/{self.env_name}/rb.npz")
+        self.rb.load_transitions(f"checkpoints/dueling_dqn/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

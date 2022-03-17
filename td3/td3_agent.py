@@ -74,16 +74,16 @@ class TD3Agent:
             self.rb.on_episode_end()
 
     def save(self):
-        os.makedirs(f"saved_networks/td3/{self.env_name}", exist_ok=True)
+        os.makedirs(f"checkpoints/td3/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
                     "critic": self.critic.state_dict(),
                     "t": self.t
-                    }, f"saved_networks/td3/{self.env_name}/actor_critic.pt")
+                    }, f"checkpoints/td3/{self.env_name}/actor_critic.pt")
 
-        self.rb.save_transitions(f"saved_networks/td3/{self.env_name}/rb.npz")
+        self.rb.save_transitions(f"checkpoints/td3/{self.env_name}/rb.npz")
 
     def load(self):
-        checkpoint = torch.load(f"saved_networks/td3/{self.env_name}/actor_critic.pt")
+        checkpoint = torch.load(f"checkpoints/td3/{self.env_name}/actor_critic.pt")
 
         self.actor.load_state_dict(checkpoint["actor"])
         self.actor_target = deepcopy(self.actor)
@@ -93,7 +93,7 @@ class TD3Agent:
 
         self.t = checkpoint["t"]
 
-        self.rb.load_transitions(f"saved_networks/td3/{self.env_name}/rb.npz")
+        self.rb.load_transitions(f"checkpoints/td3/{self.env_name}/rb.npz")
 
     def _learn(self):
         sample = self.rb.sample(self.batch_size)

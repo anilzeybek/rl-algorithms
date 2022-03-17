@@ -56,17 +56,17 @@ class PrioritizedDQNAgent:
             self.prb.on_episode_end()
 
     def save(self):
-        os.makedirs(f"saved_networks/prioritized_dqn/{self.env_name}", exist_ok=True)
+        os.makedirs(f"checkpoints/prioritized_dqn/{self.env_name}", exist_ok=True)
         torch.save({
             "Q_network": self.Q_network.state_dict(),
             "eps": self.eps,
             "beta": self.beta
-        }, f"saved_networks/prioritized_dqn/{self.env_name}/Q_network.pt")
+        }, f"checkpoints/prioritized_dqn/{self.env_name}/Q_network.pt")
 
-        self.prb.save_transitions(f"saved_networks/prioritized_dqn/{self.env_name}/prb.npz")
+        self.prb.save_transitions(f"checkpoints/prioritized_dqn/{self.env_name}/prb.npz")
 
     def load(self):
-        checkpoint = torch.load(f"saved_networks/prioritized_dqn/{self.env_name}/Q_network.pt")
+        checkpoint = torch.load(f"checkpoints/prioritized_dqn/{self.env_name}/Q_network.pt")
 
         self.Q_network.load_state_dict(checkpoint["Q_network"])
         self.target_network = deepcopy(self.Q_network)
@@ -74,7 +74,7 @@ class PrioritizedDQNAgent:
         self.eps = checkpoint["eps"]
         self.beta = checkpoint["beta"]
 
-        self.prb.load_transitions(f"saved_networks/prioritized_dqn/{self.env_name}/prb.npz")
+        self.prb.load_transitions(f"checkpoints/prioritized_dqn/{self.env_name}/prb.npz")
 
     def _learn(self):
         sample = self.prb.sample(self.batch_size, beta=self.beta)
