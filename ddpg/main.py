@@ -1,11 +1,13 @@
+import argparse
+import json
 import random
+from time import time
+
 import gym
 import numpy as np
-import json
 import torch
-import argparse
+
 from ddpg_agent import DDPGAgent
-from time import time
 
 
 def read_hyperparams():

@@ -1,11 +1,13 @@
+import argparse
+import json
 import random
+from time import time
+
 import gym
 import numpy as np
-import json
 import torch
-import argparse
+
 from double_dqn_agent import DoubleDQNAgent
-from time import time
 
 
 def read_hyperparams():

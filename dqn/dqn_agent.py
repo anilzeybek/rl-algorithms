@@ -1,11 +1,13 @@
+import os
 from copy import deepcopy
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from model import QNetwork
 from cpprb import ReplayBuffer
-import os
+
+from model import QNetwork
 
 
 class DQNAgent:
