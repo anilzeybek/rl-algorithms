@@ -9,7 +9,7 @@ from models import Actor, Critic
 
 
 class VPGBuffer:
-    def __init__(self, gamma=0.99, gae_lambda=0.95):
+    def __init__(self, gamma=0.99, gae_lambda=0.97):
         self.gamma = gamma
         self.gae_lambda = gae_lambda
 

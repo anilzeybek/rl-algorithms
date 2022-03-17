@@ -33,7 +33,7 @@ def test(env):
     )
     agent.load()
 
-    for _ in range(1, 1000):
+    for _ in range(1, 2500):
         obs = env.reset()
         score = 0
         done = False
