@@ -4,22 +4,19 @@
 
 - better readme
 
-- check roles of 2 additional improvements of her_td3
-
 - implement:
+    [x] vpg
     [x] dqn
     [x] double dqn
     [x] dueling dqn
     [x] prioritized dqn
-    [x] reinforce
-    [x] a2c
     [ ] a3c
     [x] ddpg
     [ ] maddpg/matd3
     [x] td3
     [x] sac
     [ ] trpo
-    [ ] ppo
+    [x] ppo
     [x] td3 her
     [ ] rnd
     [ ] apex
