@@ -18,5 +18,5 @@
     [ ] trpo
     [x] ppo
     [x] td3 her
-    [ ] rnd
+    [x] rnd
     [ ] apex
