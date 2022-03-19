@@ -10,5 +10,5 @@
     "train_actor_iters": 80,
     "train_critic_iters": 80,
     "train_predictor_iters": 80,
-    "initial_normalization_episodes": 1000
+    "initial_normalization_episodes": 100
 }

@@ -19,70 +19,73 @@ class RND_PPOBuffer:
     def _clear(self):
         self.obs_buffer = []
         self.action_buffer = []
-        self.extrinsic_reward_buffer = []
-        self.intrinsic_reward_buffer = []
-        self.value_buffer = []
+        self.ext_reward_buffer = []
+        self.int_reward_buffer = []
+        self.ext_value_buffer = []
+        self.int_value_buffer = []
         self.log_prob_buffer = []
 
-        self.extrinsic_advantage_buffer = []
-        self.intrinsic_advantage_buffer = []
+        self.ext_advantage_buffer = []
+        self.int_advantage_buffer = []
 
-        self.extrinsic_ret_buffer = []
-        self.intrinsic_ret_buffer = []
+        self.ext_ret_buffer = []
+        self.int_ret_buffer = []
 
-    def store(self, obs, action, extrinsic_reward, intrinsic_reward, value, log_prob):
+    def store(self, obs, action, ext_reward, int_reward, ext_value, int_value, log_prob):
         self.obs_buffer.append(obs)
         self.action_buffer.append(action)
-        self.extrinsic_reward_buffer.append(extrinsic_reward)
-        self.intrinsic_reward_buffer.append(intrinsic_reward)
-        self.value_buffer.append(value)
+        self.ext_reward_buffer.append(ext_reward)
+        self.int_reward_buffer.append(int_reward)
+        self.ext_value_buffer.append(ext_value)
+        self.int_value_buffer.append(int_value)
         self.log_prob_buffer.append(log_prob)
 
     def end_of_episode(self):
-        self.value_buffer.append(0)
+        self.ext_value_buffer.append(0)
+        self.int_value_buffer.append(0)
 
         self.obs_buffer = np.array(self.obs_buffer)
         self.action_buffer = np.array(self.action_buffer)
-        self.extrinsic_reward_buffer = np.array(self.extrinsic_reward_buffer)
-        self.value_buffer = np.array(self.value_buffer)
+        self.ext_reward_buffer = np.array(self.ext_reward_buffer)
+        self.ext_value_buffer = np.array(self.ext_value_buffer)
+        self.int_value_buffer = np.array(self.int_value_buffer)
         self.log_prob_buffer = np.array(self.log_prob_buffer)
 
         ###
 
-        extrinsic_deltas = self.extrinsic_reward_buffer + self.gamma * self.value_buffer[1:] - self.value_buffer[:-1]
+        ext_deltas = self.ext_reward_buffer + self.gamma * self.ext_value_buffer[1:] - self.ext_value_buffer[:-1]
 
-        self.extrinsic_advantage_buffer = np.zeros_like(extrinsic_deltas)
-        for i, delta in enumerate(reversed(extrinsic_deltas)):
-            self.extrinsic_advantage_buffer[-(i+1)] = delta * self.gamma * self.gae_lambda
+        self.ext_advantage_buffer = np.zeros_like(ext_deltas)
+        for i, delta in enumerate(reversed(ext_deltas)):
+            self.ext_advantage_buffer[-(i+1)] = delta * self.gamma * self.gae_lambda
 
-        self.extrinsic_ret_buffer = np.zeros_like(self.extrinsic_reward_buffer)
-        for i, r in enumerate(reversed(self.extrinsic_reward_buffer)):
-            self.extrinsic_ret_buffer[-(i+1)] = r + self.gamma * self.extrinsic_ret_buffer[-i]
+        self.ext_ret_buffer = np.zeros_like(self.ext_reward_buffer)
+        for i, r in enumerate(reversed(self.ext_reward_buffer)):
+            self.ext_ret_buffer[-(i+1)] = r + self.gamma * self.ext_ret_buffer[-i]
 
-        self.extrinsic_ret_buffer = np.expand_dims(self.extrinsic_ret_buffer, axis=1)
-
-        ###
-
-        intrinsic_deltas = self.intrinsic_reward_buffer + self.gamma * self.value_buffer[1:] - self.value_buffer[:-1]
-
-        self.intrinsic_advantage_buffer = np.zeros_like(intrinsic_deltas)
-        for i, delta in enumerate(reversed(intrinsic_deltas)):
-            self.intrinsic_advantage_buffer[-(i+1)] = delta * self.gamma * self.gae_lambda
-
-        self.intrinsic_ret_buffer = np.zeros_like(self.intrinsic_reward_buffer)
-        for i, r in enumerate(reversed(self.intrinsic_reward_buffer)):
-            self.intrinsic_ret_buffer[-(i+1)] = r + self.gamma * self.intrinsic_ret_buffer[-i]
-
-        self.intrinsic_ret_buffer = np.expand_dims(self.intrinsic_ret_buffer, axis=1)
+        self.ext_ret_buffer = np.expand_dims(self.ext_ret_buffer, axis=1)
 
         ###
 
-        self.combined_advantage_buffer = self.extrinsic_advantage_buffer + self.intrinsic_advantage_buffer
-        self.combined_ret_buffer = self.extrinsic_ret_buffer + self.intrinsic_ret_buffer
+        int_deltas = self.int_reward_buffer + self.gamma * self.int_value_buffer[1:] - self.int_value_buffer[:-1]
+
+        self.int_advantage_buffer = np.zeros_like(int_deltas)
+        for i, delta in enumerate(reversed(int_deltas)):
+            self.int_advantage_buffer[-(i+1)] = delta * self.gamma * self.gae_lambda
+
+        self.int_ret_buffer = np.zeros_like(self.int_reward_buffer)
+        for i, r in enumerate(reversed(self.int_reward_buffer)):
+            self.int_ret_buffer[-(i+1)] = r + self.gamma * self.int_ret_buffer[-i]
+
+        self.int_ret_buffer = np.expand_dims(self.int_ret_buffer, axis=1)
+
+        ###
+
+        self.combined_advantage_buffer = self.ext_advantage_buffer + self.int_advantage_buffer
 
     def get(self):
-        data = dict(obs=self.obs_buffer, action=self.action_buffer,
-                    ret=self.combined_ret_buffer, advantage=self.combined_advantage_buffer, log_prob=self.log_prob_buffer)
+        data = dict(obs=self.obs_buffer, action=self.action_buffer, ext_ret=self.ext_ret_buffer,
+                    int_ret=self.int_ret_buffer, advantage=self.combined_advantage_buffer, log_prob=self.log_prob_buffer)
         self._clear()
 
         return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in data.items()}
@@ -103,7 +106,9 @@ class RND_PPOAgent:
         self.train_predictor_iters = train_predictor_iters
 
         self.actor = Actor(obs_dim, action_dim)
-        self.critic = Critic(obs_dim)
+        self.ext_critic = Critic(obs_dim)
+        self.int_critic = Critic(obs_dim)
+
         self.target_network = RandomScalarNetwork(self.obs_dim)
         for param in self.target_network.parameters():
             param.requires_grad = False
@@ -111,37 +116,39 @@ class RND_PPOAgent:
         self.predictor_network = RandomScalarNetwork(self.obs_dim)
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=actor_lr)
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=critic_lr)
+        self.ext_critic_optimizer = Adam(self.ext_critic.parameters(), lr=critic_lr)
+        self.int_critic_optimizer = Adam(self.int_critic.parameters(), lr=critic_lr)
         self.predictor_optimizer = Adam(self.predictor_network.parameters(), lr=predictor_lr)
 
         self.buffer = RND_PPOBuffer(gamma, gae_lambda)
 
         self.obs_normalizer = Normalizer(self.obs_dim)
-        self.intrinsic_reward_normalizer = Normalizer(1, use_mean=False)
+        self.int_reward_normalizer = Normalizer(1, use_mean=False)
 
     def act(self, obs):
         obs = self.obs_normalizer.normalize(obs)
         return self.actor(torch.Tensor(obs))[0]
 
-    def step(self, obs, action, extrinsic_reward, next_obs, done):
+    def step(self, obs, action, ext_reward, next_obs, done):
         obs = self.obs_normalizer.normalize(obs)
         next_obs = self.obs_normalizer.normalize(next_obs)
 
         with torch.no_grad():
             _, log_prob = self.actor(torch.Tensor(obs), torch.from_numpy(action))
-            value = self.critic(torch.Tensor(obs)).item()
+            ext_value = self.ext_critic(torch.Tensor(obs)).item()
+            int_value = self.int_critic(torch.Tensor(obs)).item()
 
-            intrinsic_reward = (self.predictor_network(torch.Tensor(next_obs)) -
-                                self.target_network(torch.Tensor(next_obs))).item() ** 2
+            int_reward = (self.predictor_network(torch.Tensor(next_obs)) -
+                          self.target_network(torch.Tensor(next_obs))).item() ** 2
 
-        self.buffer.store(obs, action, extrinsic_reward, intrinsic_reward, value, log_prob)
+        self.buffer.store(obs, action, ext_reward, int_reward, ext_value, int_value, log_prob)
 
         if done:
             self.obs_normalizer.update(np.array(self.buffer.obs_buffer))
-            self.intrinsic_reward_normalizer.update(np.array(self.buffer.intrinsic_reward_buffer))
+            self.int_reward_normalizer.update(np.array(self.buffer.int_reward_buffer))
 
-            self.buffer.intrinsic_reward_buffer = self.intrinsic_reward_normalizer.normalize(
-                self.buffer.intrinsic_reward_buffer)
+            self.buffer.int_reward_buffer = self.int_reward_normalizer.normalize(
+                self.buffer.int_reward_buffer)
 
             self.buffer.end_of_episode()
             self._learn()
@@ -149,7 +156,8 @@ class RND_PPOAgent:
     def save(self):
         os.makedirs(f"checkpoints/rnd_ppo/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
-                    "critic": self.critic.state_dict(),
+                    "ext_critic": self.ext_critic.state_dict(),
+                    "int_critic": self.int_critic.state_dict(),
                     "obs_normalizer_mean": self.obs_normalizer.mean,
                     "obs_normalizer_std": self.obs_normalizer.std},
                    f"checkpoints/rnd_ppo/{self.env_name}/actor_critic.pt")
@@ -157,13 +165,15 @@ class RND_PPOAgent:
     def load(self):
         checkpoint = torch.load(f"checkpoints/rnd_ppo/{self.env_name}/actor_critic.pt")
         self.actor.load_state_dict(checkpoint["actor"])
-        self.critic.load_state_dict(checkpoint["critic"])
+        self.ext_critic.load_state_dict(checkpoint["ext_critic"])
+        self.int_critic.load_state_dict(checkpoint["int_critic"])
         self.obs_normalizer.mean = checkpoint["obs_normalizer_mean"]
         self.obs_normalizer.std = checkpoint["obs_normalizer_std"]
 
     def _learn(self):
         data = self.buffer.get()
-        obs, action, advantage, ret, old_log_prob = data['obs'], data['action'], data['advantage'], data['ret'], data['log_prob']
+        obs, action, advantage, ext_ret, int_ret, old_log_prob = data['obs'], data[
+            'action'], data['advantage'], data['ext_ret'], data['int_ret'], data['log_prob']
 
         for _ in range(self.train_actor_iters):
             self.actor_optimizer.zero_grad()
@@ -182,12 +192,21 @@ class RND_PPOAgent:
             self.actor_optimizer.step()
 
         for _ in range(self.train_critic_iters):
-            self.critic_optimizer.zero_grad()
+            self.ext_critic_optimizer.zero_grad()
 
-            critic_loss = F.mse_loss(self.critic(obs), ret)
-            critic_loss.backward()
+            ext_critic_loss = F.mse_loss(self.ext_critic(obs), ext_ret)
+            ext_critic_loss.backward()
 
-            self.critic_optimizer.step()
+            self.ext_critic_optimizer.step()
+
+            ###
+
+            self.int_critic_optimizer.zero_grad()
+
+            int_critic_loss = F.mse_loss(self.int_critic(obs), int_ret)
+            int_critic_loss.backward()
+
+            self.int_critic_optimizer.step()
 
         for _ in range(self.train_predictor_iters):
             self.predictor_optimizer.zero_grad()
