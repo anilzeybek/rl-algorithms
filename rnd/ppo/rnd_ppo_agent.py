@@ -154,16 +154,16 @@ class RND_PPOAgent:
             self._learn()
 
     def save(self):
-        os.makedirs(f"checkpoints/rnd_ppo/{self.env_name}", exist_ok=True)
+        os.makedirs(f"checkpoints/rnd/ppo/{self.env_name}", exist_ok=True)
         torch.save({"actor": self.actor.state_dict(),
                     "ext_critic": self.ext_critic.state_dict(),
                     "int_critic": self.int_critic.state_dict(),
                     "obs_normalizer_mean": self.obs_normalizer.mean,
                     "obs_normalizer_std": self.obs_normalizer.std},
-                   f"checkpoints/rnd_ppo/{self.env_name}/actor_critic.pt")
+                   f"checkpoints/rnd/ppo/{self.env_name}/actor_critic.pt")
 
     def load(self):
-        checkpoint = torch.load(f"checkpoints/rnd_ppo/{self.env_name}/actor_critic.pt")
+        checkpoint = torch.load(f"checkpoints/rnd/ppo/{self.env_name}/actor_critic.pt")
         self.actor.load_state_dict(checkpoint["actor"])
         self.ext_critic.load_state_dict(checkpoint["ext_critic"])
         self.int_critic.load_state_dict(checkpoint["int_critic"])

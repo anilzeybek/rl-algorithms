@@ -11,14 +11,14 @@ from rnd_ppo_agent import RND_PPOAgent
 
 
 def read_hyperparams():
-    with open('rnd/hyperparams.json') as f:
+    with open('rnd/ppo/hyperparams.json') as f:
         hyperparams = json.load(f)
         return hyperparams
 
 
 def get_args():
     parser = argparse.ArgumentParser(description='options')
-    parser.add_argument('--env_name', type=str, default='LunarLander-v2')
+    parser.add_argument('--env_name', type=str, default='MountainCar-v0')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
