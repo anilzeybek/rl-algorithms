@@ -3,7 +3,6 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 from cpprb import PrioritizedReplayBuffer
 
@@ -40,6 +39,7 @@ class PrioritizedDQNAgent:
             "done": {}},
             alpha=self.alpha
         )
+        self.t = 0
 
     def act(self, obs, train_mode=True):
         if train_mode and np.random.rand() < self.eps:
@@ -50,8 +50,11 @@ class PrioritizedDQNAgent:
             return torch.argmax(action_values).item()
 
     def step(self, obs, action, reward, next_obs, done):
+        self.t += 1
         self.prb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, done=done)
-        self._learn()
+
+        if self.t >= 10000:
+            self._learn()
 
         if done:
             self.eps = max(self.eps_end, self.eps_decay * self.eps)
@@ -76,7 +79,7 @@ class PrioritizedDQNAgent:
 
     def _learn(self):
         sample = self.prb.sample(self.batch_size, beta=self.beta)
-        self.beta = min(1.0, self.beta + 5e-6)
+        self.beta = min(1.0, self.beta + 4e-6)
 
         obs = torch.Tensor(sample['obs'])
         action = torch.Tensor(sample['action']).long()
@@ -90,10 +93,10 @@ class PrioritizedDQNAgent:
             Q_target_next = self.target_network(next_obs).gather(1, a)
             Q_target = reward + self.gamma * Q_target_next * (1 - done)
 
-            error = (Q_target - Q_current).abs().numpy()
+            abs_td_error = (Q_target - Q_current).abs().numpy().squeeze()
 
-        self.prb.update_priorities(sample['indexes'], error)
-        loss = (torch.Tensor(sample['weights']) * F.mse_loss(Q_current, Q_target)).mean()
+        self.prb.update_priorities(sample['indexes'], abs_td_error)
+        loss = (torch.Tensor(sample['weights']) * (Q_current - Q_target) ** 2).mean()
 
         self.optimizer.zero_grad()
         loss.backward()
