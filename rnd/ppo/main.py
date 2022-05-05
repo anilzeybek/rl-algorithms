@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
-    parser.add_argument("--max_episodes", type=int, default=150)
+    parser.add_argument("--max_timesteps", type=int, default=int(1.5e+5))
     parser.add_argument("--actor_lr", type=float, default=1e-3)
     parser.add_argument("--critic_lr", type=float, default=1e-3)
     parser.add_argument("--predictor_lr", type=float, default=1e-4)
@@ -41,19 +41,20 @@ def test(env):
     )
     agent.load()
 
-    for _ in range(1, 2500):
-        obs = env.reset()
-        score = 0
-        done = False
-        while not done:
-            action = agent.act(obs)
-            next_obs, reward, done, _ = env.step(action)
-            env.render()
+    obs = env.reset()
+    score = 0
+    while True:
+        action = agent.act(obs)
+        next_obs, reward, done, _ = env.step(action)
+        env.render()
 
-            obs = next_obs
-            score += reward
+        obs = next_obs
+        score += reward
 
-        print(f"score: {score:.2f}")
+        if done:
+            print(f'ep score: {score:.2f}')
+            obs = env.reset()
+            score = 0
 
 
 def train(env, args):
@@ -89,22 +90,23 @@ def train(env, args):
 
     agent.obs_normalizer.update(np.array(obs_list))
 
-    for i in range(1, args.max_episodes+1):
-        obs = env.reset()
-        score = 0
-        done = False
-        while not done:
-            action = agent.act(obs)
-            next_obs, extrinsic_reward, done, _ = env.step(action)
+    obs = env.reset()
+    score = 0
+    for t in range(1, args.max_timesteps+1):
+        action = agent.act(obs)
+        next_obs, ext_reward, done, _ = env.step(action)
 
-            agent.step(obs, action, extrinsic_reward, next_obs, done)
-            obs = next_obs
-            score += extrinsic_reward
+        agent.step(obs, action, ext_reward, next_obs, done)
+        obs = next_obs
+        score += ext_reward
 
-        if i % 100 == 0:
+        if done:
+            print(f'{t}/{args.max_timesteps} | ep score: {score:.2f}')
+            obs = env.reset()
+            score = 0
+
+        if t % (args.max_timesteps // 10) == 0:
             agent.save()
-
-        print(f'ep: {i}/{args.max_episodes} | score: {score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
