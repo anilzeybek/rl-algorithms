@@ -1,5 +1,4 @@
 import argparse
-import json
 import random
 from time import time
 
@@ -10,18 +9,25 @@ import torch
 from td3_agent import TD3Agent
 
 
-def read_hyperparams():
-    with open('td3/hyperparams.json') as f:
-        hyperparams = json.load(f)
-        return hyperparams
-
-
 def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
+
+    parser.add_argument("--max_episodes", type=int, default=500)
+    parser.add_argument("--expl_noise", type=float, default=0.1)
+    parser.add_argument("--start_timesteps", type=int, default=25000)
+    parser.add_argument("--buffer_size", type=int, default=200000)
+    parser.add_argument("--actor_lr", type=float, default=1e-3)
+    parser.add_argument("--critic_lr", type=float, default=1e-3)
+    parser.add_argument("--batch_size", type=int, default=256)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--tau", type=float, default=0.005)
+    parser.add_argument("--policy_noise", type=float, default=0.2)
+    parser.add_argument("--noise_clip", type=float, default=0.5)
+    parser.add_argument("--policy_freq", type=int, default=2)
 
     args = parser.parse_args()
     return args
@@ -51,34 +57,31 @@ def test(env):
         print(f"score: {score:.2f}")
 
 
-def train(env, cont):
-    hyperparams = read_hyperparams()
-
+def train(env, args):
     agent = TD3Agent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.shape[0],
         action_bounds={"low": env.action_space.low, "high": env.action_space.high},
         env_name=env.unwrapped.spec.id,
-        expl_noise=hyperparams['expl_noise'],
-        start_timesteps=hyperparams['start_timesteps'],
-        buffer_size=hyperparams['buffer_size'],
-        actor_lr=hyperparams['actor_lr'],
-        critic_lr=hyperparams['critic_lr'],
-        batch_size=hyperparams['batch_size'],
-        gamma=hyperparams['gamma'],
-        tau=hyperparams['tau'],
-        policy_noise=hyperparams['policy_noise'],
-        noise_clip=hyperparams['noise_clip'],
-        policy_freq=hyperparams['policy_freq']
+        expl_noise=args.expl_noise,
+        start_timesteps=args.start_timesteps,
+        buffer_size=args.buffer_size,
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        batch_size=args.batch_size,
+        gamma=args.gamma,
+        tau=args.tau,
+        policy_noise=args.policy_noise,
+        noise_clip=args.noise_clip,
+        policy_freq=args.policy_freq
     )
 
-    if cont:
+    if args.cont:
         agent.load()
 
     start = time()
 
-    max_episodes = hyperparams['max_episodes']
-    for i in range(1, max_episodes+1):
+    for i in range(1, args.max_episodes+1):
         obs = env.reset()
         score = 0
         done = False
@@ -93,7 +96,7 @@ def train(env, cont):
         if i % 100 == 0:
             agent.save()
 
-        print(f'ep: {i}/{max_episodes} | score: {score:.2f}')
+        print(f'ep: {i}/{args.max_episodes} | score: {score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
@@ -114,7 +117,7 @@ def main():
     if args.test:
         test(env)
     else:
-        train(env, args.cont)
+        train(env, args)
 
 
 if __name__ == "__main__":

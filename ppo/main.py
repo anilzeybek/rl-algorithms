@@ -1,5 +1,4 @@
 import argparse
-import json
 import random
 from time import time
 
@@ -10,18 +9,22 @@ import torch
 from ppo_agent import PPOAgent
 
 
-def read_hyperparams():
-    with open('ppo/hyperparams.json') as f:
-        hyperparams = json.load(f)
-        return hyperparams
-
-
 def get_args():
     parser = argparse.ArgumentParser(description='options')
     parser.add_argument('--env_name', type=str, default='LunarLander-v2')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
+
+    parser.add_argument("--max_episodes", type=int, default=1000)
+    parser.add_argument("--actor_lr", type=float, default=1e-3)
+    parser.add_argument("--critic_lr", type=float, default=1e-3)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--gae_lambda", type=float, default=0.97)
+    parser.add_argument("--clip_ratio", type=float, default=0.2)
+    parser.add_argument("--target_kl", type=float, default=0.01)
+    parser.add_argument("--train_actor_iters", type=int, default=80)
+    parser.add_argument("--train_critic_iters", type=int, default=80)
 
     args = parser.parse_args()
     return args
@@ -50,30 +53,27 @@ def test(env):
         print(f"score: {score:.2f}")
 
 
-def train(env, cont):
-    hyperparams = read_hyperparams()
-
+def train(env, args):
     agent = PPOAgent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
         env_name=env.unwrapped.spec.id,
-        actor_lr=hyperparams['actor_lr'],
-        critic_lr=hyperparams['critic_lr'],
-        gamma=hyperparams['gamma'],
-        gae_lambda=hyperparams['gae_lambda'],
-        clip_ratio=hyperparams['clip_ratio'],
-        target_kl=hyperparams['target_kl'],
-        train_actor_iters=hyperparams['train_actor_iters'],
-        train_critic_iters=hyperparams['train_critic_iters']
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        gamma=args.gamma,
+        gae_lambda=args.gae_lambda,
+        clip_ratio=args.clip_ratio,
+        target_kl=args.target_kl,
+        train_actor_iters=args.train_actor_iters,
+        train_critic_iters=args.train_critic_iters
     )
 
-    if cont:
+    if args.cont:
         agent.load()
 
     start = time()
 
-    max_episodes = hyperparams['max_episodes']
-    for i in range(1, max_episodes+1):
+    for i in range(1, args.max_episodes+1):
         obs = env.reset()
         score = 0
         done = False
@@ -88,7 +88,7 @@ def train(env, cont):
         if i % 100 == 0:
             agent.save()
 
-        print(f'ep: {i}/{max_episodes} | score: {score:.2f}')
+        print(f'ep: {i}/{args.max_episodes} | score: {score:.2f}')
 
     end = time()
     print("training completed, elapsed time: ", end - start)
@@ -109,7 +109,7 @@ def main():
     if args.test:
         test(env)
     else:
-        train(env, args.cont)
+        train(env, args)
 
 
 if __name__ == "__main__":
