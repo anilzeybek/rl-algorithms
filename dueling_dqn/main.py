@@ -80,9 +80,8 @@ def train(env, cont):
         while not done:
             action = agent.act(obs)
             next_obs, reward, done, _ = env.step(action)
-            real_done = done if env._elapsed_steps < env._max_episode_steps else False
 
-            agent.step(obs, action, reward, next_obs, real_done)
+            agent.step(obs, action, reward, next_obs, done)
             obs = next_obs
             score += reward
 
