@@ -11,7 +11,20 @@ from models import Actor, Critic
 
 
 class SACAgent:
-    def __init__(self, obs_dim, action_dim, action_bounds, env_name, alpha=0.1, start_timesteps=25000, buffer_size=200000, actor_lr=1e-3, critic_lr=1e-3, batch_size=256, gamma=0.99, tau=0.005):
+    def __init__(self,
+                 obs_dim,
+                 action_dim,
+                 action_bounds,
+                 env_name,
+                 alpha,
+                 start_timesteps,
+                 buffer_size,
+                 actor_lr,
+                 critic_lr,
+                 batch_size,
+                 gamma,
+                 tau):
+
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim

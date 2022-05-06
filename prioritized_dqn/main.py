@@ -32,12 +32,7 @@ def get_args():
     return args
 
 
-def test(env):
-    agent = PrioritizedDQNAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
-    )
+def test(env, agent):
     agent.load()
 
     obs = env.reset()
@@ -56,23 +51,7 @@ def test(env):
             score = 0
 
 
-def train(env, args):
-    agent = PrioritizedDQNAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
-        buffer_size=args.buffer_size,
-        lr=args.lr,
-        batch_size=args.batch_size,
-        gamma=args.gamma,
-        tau=args.tau,
-        alpha=args.alpha,
-        beta=args.beta,
-        eps_start=args.eps_start,
-        eps_end=args.eps_end,
-        eps_decay=args.eps_decay,
-    )
-
+def train(env, agent, args):
     if args.cont:
         agent.load()
 
@@ -112,10 +91,26 @@ def main():
     env.seed(args.seed)
     env.action_space.seed(args.seed)
 
+    agent = PrioritizedDQNAgent(
+        obs_dim=env.observation_space.shape[0],
+        action_dim=env.action_space.n,
+        env_name=env.unwrapped.spec.id,
+        buffer_size=args.buffer_size,
+        lr=args.lr,
+        batch_size=args.batch_size,
+        gamma=args.gamma,
+        tau=args.tau,
+        alpha=args.alpha,
+        beta=args.beta,
+        eps_start=args.eps_start,
+        eps_end=args.eps_end,
+        eps_decay=args.eps_decay,
+    )
+
     if args.test:
-        test(env)
+        test(env, agent)
     else:
-        train(env, args)
+        train(env, agent, args)
 
 
 if __name__ == "__main__":

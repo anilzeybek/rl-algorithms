@@ -10,7 +10,7 @@ from normalizer import Normalizer
 
 
 class RND_PPOBuffer:
-    def __init__(self, gamma=0.99, gae_lambda=0.97):
+    def __init__(self, gamma, gae_lambda):
         self.gamma = gamma
         self.gae_lambda = gae_lambda
 
@@ -92,7 +92,21 @@ class RND_PPOBuffer:
 
 
 class RND_PPOAgent:
-    def __init__(self, obs_dim, action_dim, env_name, actor_lr=1e-4, critic_lr=1e-4, predictor_lr=1e-4, gamma=0.99, gae_lambda=0.97, clip_ratio=0.2, target_kl=0.01, train_actor_iters=80, train_critic_iters=80, train_predictor_iters=80):
+    def __init__(self,
+                 obs_dim,
+                 action_dim,
+                 env_name,
+                 actor_lr,
+                 critic_lr,
+                 predictor_lr,
+                 gamma,
+                 gae_lambda,
+                 clip_ratio,
+                 target_kl,
+                 train_actor_iters,
+                 train_critic_iters,
+                 train_predictor_iters):
+
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name

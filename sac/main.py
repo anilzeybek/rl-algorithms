@@ -30,13 +30,7 @@ def get_args():
     return args
 
 
-def test(env):
-    agent = SACAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.shape[0],
-        action_bounds={"low": env.action_space.low, "high": env.action_space.high},
-        env_name=env.unwrapped.spec.id
-    )
+def test(env, agent):
     agent.load()
 
     obs = env.reset()
@@ -55,22 +49,7 @@ def test(env):
             score = 0
 
 
-def train(env, args):
-    agent = SACAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.shape[0],
-        action_bounds={"low": env.action_space.low, "high": env.action_space.high},
-        env_name=env.unwrapped.spec.id,
-        alpha=args.alpha,
-        start_timesteps=args.start_timesteps,
-        buffer_size=args.buffer_size,
-        actor_lr=args.actor_lr,
-        critic_lr=args.critic_lr,
-        batch_size=args.batch_size,
-        gamma=args.gamma,
-        tau=args.tau
-    )
-
+def train(env, agent, args):
     if args.cont:
         agent.load()
 
@@ -110,10 +89,25 @@ def main():
     env.seed(args.seed)
     env.action_space.seed(args.seed)
 
+    agent = SACAgent(
+        obs_dim=env.observation_space.shape[0],
+        action_dim=env.action_space.shape[0],
+        action_bounds={"low": env.action_space.low, "high": env.action_space.high},
+        env_name=env.unwrapped.spec.id,
+        alpha=args.alpha,
+        start_timesteps=args.start_timesteps,
+        buffer_size=args.buffer_size,
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        batch_size=args.batch_size,
+        gamma=args.gamma,
+        tau=args.tau
+    )
+
     if args.test:
-        test(env)
+        test(env, agent)
     else:
-        train(env, args)
+        train(env, agent, args)
 
 
 if __name__ == "__main__":

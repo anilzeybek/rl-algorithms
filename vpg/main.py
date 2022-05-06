@@ -27,12 +27,7 @@ def get_args():
     return args
 
 
-def test(env):
-    agent = VPGAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
-    )
+def test(env, agent):
     agent.load()
 
     obs = env.reset()
@@ -51,18 +46,7 @@ def test(env):
             score = 0
 
 
-def train(env, args):
-    agent = VPGAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
-        actor_lr=args.actor_lr,
-        critic_lr=args.critic_lr,
-        gamma=args.gamma,
-        gae_lambda=args.gae_lambda,
-        train_critic_iters=args.train_critic_iters
-    )
-
+def train(env, agent, args):
     if args.cont:
         agent.load()
 
@@ -102,10 +86,21 @@ def main():
     env.seed(args.seed)
     env.action_space.seed(args.seed)
 
+    agent = VPGAgent(
+        obs_dim=env.observation_space.shape[0],
+        action_dim=env.action_space.n,
+        env_name=env.unwrapped.spec.id,
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        gamma=args.gamma,
+        gae_lambda=args.gae_lambda,
+        train_critic_iters=args.train_critic_iters
+    )
+
     if args.test:
-        test(env)
+        test(env, agent)
     else:
-        train(env, args)
+        train(env, agent, args)
 
 
 if __name__ == "__main__":

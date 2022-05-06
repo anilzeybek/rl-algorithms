@@ -12,7 +12,26 @@ from normalizer import Normalizer
 
 
 class HER_TD3Agent:
-    def __init__(self, obs_dim, action_dim, goal_dim, action_bounds, compute_reward_func, env_name, expl_noise=0.1, start_timesteps=25000, k_future=4, buffer_size=1000000, actor_lr=1e-3, critic_lr=1e-3, batch_size=128, gamma=0.98, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
+    def __init__(self,
+                 obs_dim,
+                 action_dim,
+                 goal_dim,
+                 action_bounds,
+                 compute_reward_func,
+                 env_name,
+                 expl_noise,
+                 start_timesteps,
+                 k_future,
+                 buffer_size,
+                 actor_lr,
+                 critic_lr,
+                 batch_size,
+                 gamma,
+                 tau,
+                 policy_noise,
+                 noise_clip,
+                 policy_freq):
+
         self.max_action = max(action_bounds["high"])
 
         self.obs_dim = obs_dim

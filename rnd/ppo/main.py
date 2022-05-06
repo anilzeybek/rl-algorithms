@@ -33,12 +33,7 @@ def get_args():
     return args
 
 
-def test(env):
-    agent = RND_PPOAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
-    )
+def test(env, agent):
     agent.load()
 
     obs = env.reset()
@@ -57,23 +52,7 @@ def test(env):
             score = 0
 
 
-def train(env, args):
-    agent = RND_PPOAgent(
-        obs_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
-        actor_lr=args.actor_lr,
-        critic_lr=args.critic_lr,
-        predictor_lr=args.predictor_lr,
-        gamma=args.gamma,
-        gae_lambda=args.gae_lambda,
-        clip_ratio=args.clip_ratio,
-        target_kl=args.target_kl,
-        train_actor_iters=args.train_actor_iters,
-        train_critic_iters=args.train_critic_iters,
-        train_predictor_iters=args.train_predictor_iters
-    )
-
+def train(env, agent, args):
     if args.cont:
         agent.load()
 
@@ -124,10 +103,26 @@ def main():
     env.seed(args.seed)
     env.action_space.seed(args.seed)
 
+    agent = RND_PPOAgent(
+        obs_dim=env.observation_space.shape[0],
+        action_dim=env.action_space.n,
+        env_name=env.unwrapped.spec.id,
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        predictor_lr=args.predictor_lr,
+        gamma=args.gamma,
+        gae_lambda=args.gae_lambda,
+        clip_ratio=args.clip_ratio,
+        target_kl=args.target_kl,
+        train_actor_iters=args.train_actor_iters,
+        train_critic_iters=args.train_critic_iters,
+        train_predictor_iters=args.train_predictor_iters
+    )
+
     if args.test:
-        test(env)
+        test(env, agent)
     else:
-        train(env, args)
+        train(env, agent, args)
 
 
 if __name__ == "__main__":

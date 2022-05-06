@@ -34,15 +34,7 @@ def get_args():
     return args
 
 
-def test(env):
-    agent = HER_TD3Agent(
-        obs_dim=env.observation_space["observation"].shape[0],
-        action_dim=env.action_space.shape[0],
-        goal_dim=env.observation_space["desired_goal"].shape[0],
-        action_bounds={"low": env.action_space.low, "high": env.action_space.high},
-        compute_reward_func=env.compute_reward,
-        env_name=env.unwrapped.spec.id,
-    )
+def test(env, agent):
     agent.load()
 
     env_dict = env.reset()
@@ -61,28 +53,7 @@ def test(env):
             score = 0
 
 
-def train(env, args):
-    agent = HER_TD3Agent(
-        obs_dim=env.observation_space["observation"].shape[0],
-        action_dim=env.action_space.shape[0],
-        goal_dim=env.observation_space["desired_goal"].shape[0],
-        action_bounds={"low": env.action_space.low, "high": env.action_space.high},
-        compute_reward_func=env.compute_reward,
-        env_name=env.unwrapped.spec.id,
-        k_future=args.k_future,
-        expl_noise=args.expl_noise,
-        start_timesteps=args.start_timesteps,
-        buffer_size=args.buffer_size,
-        actor_lr=args.actor_lr,
-        critic_lr=args.critic_lr,
-        batch_size=args.batch_size,
-        gamma=args.gamma,
-        tau=args.tau,
-        policy_noise=args.policy_noise,
-        noise_clip=args.noise_clip,
-        policy_freq=args.policy_freq
-    )
-
+def train(env, agent, args):
     if args.cont:
         agent.load()
 
@@ -122,10 +93,31 @@ def main():
     env.seed(args.seed)
     env.action_space.seed(args.seed)
 
+    agent = HER_TD3Agent(
+        obs_dim=env.observation_space["observation"].shape[0],
+        action_dim=env.action_space.shape[0],
+        goal_dim=env.observation_space["desired_goal"].shape[0],
+        action_bounds={"low": env.action_space.low, "high": env.action_space.high},
+        compute_reward_func=env.compute_reward,
+        env_name=env.unwrapped.spec.id,
+        k_future=args.k_future,
+        expl_noise=args.expl_noise,
+        start_timesteps=args.start_timesteps,
+        buffer_size=args.buffer_size,
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        batch_size=args.batch_size,
+        gamma=args.gamma,
+        tau=args.tau,
+        policy_noise=args.policy_noise,
+        noise_clip=args.noise_clip,
+        policy_freq=args.policy_freq
+    )
+
     if args.test:
-        test(env)
+        test(env, agent)
     else:
-        train(env, args)
+        train(env, agent, args)
 
 
 if __name__ == "__main__":
