@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
-    parser.add_argument("--max_timesteps", type=int, default=int(1.5e+5))
+    parser.add_argument("--max_timesteps", type=int, default=int(3e+5))
     parser.add_argument("--expl_noise", type=float, default=0.1)
     parser.add_argument("--start_timesteps", type=int, default=25000)
     parser.add_argument("--buffer_size", type=int, default=200000)
@@ -96,7 +96,7 @@ def main():
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.shape[0],
         action_bounds={"low": env.action_space.low, "high": env.action_space.high},
-        env_name=env.unwrapped.spec.id,
+        env_name=args.env_name,
         expl_noise=args.expl_noise,
         start_timesteps=args.start_timesteps,
         buffer_size=args.buffer_size,

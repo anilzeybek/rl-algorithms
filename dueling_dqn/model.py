@@ -6,22 +6,27 @@ class DuelingNetwork(nn.Module):
     def __init__(self, obs_dim, action_dim):
         super(DuelingNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(obs_dim, 64)
+        self.init_net = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.ReLU()
+        )
 
-        self.v1 = nn.Linear(64, 64)
-        self.v2 = nn.Linear(64, 1)
+        self.v_net = nn.Sequential(
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
 
-        self.a1 = nn.Linear(64, 64)
-        self.a2 = nn.Linear(64, action_dim)
+        self.a_net = nn.Sequential(
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, action_dim)
+        )
 
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-
-        v = F.relu(self.v1(x))
-        v = self.v2(v)
-
-        a = F.relu(self.a1(x))
-        a = self.a2(a)
+    def forward(self, obs):
+        x = self.init_net(obs)
+        v = self.v_net(x)
+        a = self.a_net(x)
 
         Q = v + a - a.mean(dim=1, keepdim=True)
         return Q

@@ -7,14 +7,16 @@ class Actor(nn.Module):
     def __init__(self, obs_dim, action_dim):
         super(Actor, self).__init__()
 
-        self.fc1 = nn.Linear(obs_dim, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, action_dim)
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, action_dim)
+        )
 
     def forward(self, obs, action=None):
-        x = F.relu(self.fc1(obs))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.net(obs)
 
         distribution = Categorical(logits=x)
         a = distribution.sample()
@@ -30,29 +32,29 @@ class Critic(nn.Module):
     def __init__(self, obs_dim):
         super(Critic, self).__init__()
 
-        self.fc1 = nn.Linear(obs_dim, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 1)
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
 
     def forward(self, obs):
-        x = F.relu(self.fc1(obs))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-
-        return x
+        return self.net(obs)
 
 
 class RandomScalarNetwork(nn.Module):
     def __init__(self, obs_dim):
         super(RandomScalarNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(obs_dim, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 1)
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+        )
 
     def forward(self, obs):
-        x = F.relu(self.fc1(obs))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-
-        return x
+        return self.net(obs)

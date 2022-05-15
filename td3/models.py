@@ -8,39 +8,43 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
         self.max_action = max_action
 
-        self.fc1 = nn.Linear(obs_dim, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, action_dim)
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, action_dim),
+            nn.Tanh()
+        )
 
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-
-        return torch.tanh(x) * self.max_action
+    def forward(self, obs):
+        x = self.net(obs)
+        return x * self.max_action
 
 
 class Critic(nn.Module):
     def __init__(self, obs_dim, action_dim):
         super(Critic, self).__init__()
 
-        self.fc1 = nn.Linear(obs_dim + action_dim, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 1)
-
-        self.fc4 = nn.Linear(obs_dim + action_dim, 256)
-        self.fc5 = nn.Linear(256, 256)
-        self.fc6 = nn.Linear(256, 1)
+        self.net1 = nn.Sequential(
+            nn.Linear(obs_dim + action_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1),
+        )
+        self.net2 = nn.Sequential(
+            nn.Linear(obs_dim + action_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1),
+        )
 
     def forward(self, obs, action):
         obs_action = torch.cat([obs, action], dim=-1)
 
-        q1 = F.relu(self.fc1(obs_action))
-        q1 = F.relu(self.fc2(q1))
-        output1 = self.fc3(q1)
+        x1 = self.net1(obs_action)
+        x2 = self.net2(obs_action)
 
-        q2 = F.relu(self.fc4(obs_action))
-        q2 = F.relu(self.fc5(q2))
-        output2 = self.fc6(q2)
-
-        return output1, output2
+        return x1, x2

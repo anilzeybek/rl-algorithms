@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
-    parser.add_argument("--max_timesteps", type=int, default=int(1.5e+5))
+    parser.add_argument("--max_timesteps", type=int, default=int(3e+5))
     parser.add_argument("--buffer_size", type=int, default=200000)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=128)
@@ -94,7 +94,7 @@ def main():
     agent = PrioritizedDQNAgent(
         obs_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
-        env_name=env.unwrapped.spec.id,
+        env_name=args.env_name,
         buffer_size=args.buffer_size,
         lr=args.lr,
         batch_size=args.batch_size,
