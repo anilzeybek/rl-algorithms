@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
-    parser.add_argument("--max_timesteps", type=int, default=int(3e+5))
+    parser.add_argument("--max_timesteps", type=int, default=int(3e+4))
     parser.add_argument("--actor_lr", type=float, default=1e-3)
     parser.add_argument("--critic_lr", type=float, default=1e-3)
     parser.add_argument("--predictor_lr", type=float, default=1e-4)

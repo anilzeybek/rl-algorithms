@@ -16,9 +16,9 @@ def get_args():
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
 
-    parser.add_argument("--max_timesteps", type=int, default=int(3e+5))
+    parser.add_argument("--max_timesteps", type=int, default=int(1.5e+4))
     parser.add_argument("--expl_noise", type=float, default=0.1)
-    parser.add_argument("--start_timesteps", type=int, default=25000)
+    parser.add_argument("--start_timesteps", type=int, default=5000)
     parser.add_argument("--buffer_size", type=int, default=200000)
     parser.add_argument("--actor_lr", type=float, default=1e-3)
     parser.add_argument("--critic_lr", type=float, default=1e-3)

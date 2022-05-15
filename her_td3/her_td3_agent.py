@@ -53,10 +53,10 @@ class HER_TD3Agent:
         self.noise_clip = noise_clip * self.max_action
         self.policy_freq = policy_freq
 
-        self.actor = Actor(obs_dim, action_dim, goal_dim, self.max_action)
+        self.actor = Actor(obs_dim+goal_dim, action_dim, self.max_action)
         self.actor_target = deepcopy(self.actor)
 
-        self.critic = Critic(obs_dim, action_dim, goal_dim)
+        self.critic = Critic(obs_dim+goal_dim, action_dim)
         self.critic_target = deepcopy(self.critic)
 
         self.normalizer = Normalizer(self.obs_dim+self.goal_dim)
