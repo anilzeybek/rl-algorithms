@@ -61,13 +61,12 @@ def train(env, agent, args):
     start = time()
 
     obs_list = []
-    for _ in range(args.initial_normalization_episodes):
-        obs = env.reset()
+    obs = env.reset(seed=args.seed)
+    for t in range(args.initial_normalization_timesteps):
         obs_list.append(obs)
-        done = False
-        while not done:
-            obs, _, done, _ = env.step(env.action_space.sample())
-            obs_list.append(obs)
+        obs, _, done, _ = env.step(env.action_space.sample())
+        if done:
+            obs = env.reset()
 
     agent.obs_normalizer.update(np.array(obs_list))
 
@@ -102,7 +101,6 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    env.seed(args.seed)
     env.action_space.seed(args.seed)
 
     agent = TD3Agent(

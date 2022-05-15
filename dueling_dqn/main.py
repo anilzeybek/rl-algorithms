@@ -55,7 +55,7 @@ def train(env, agent, args):
 
     start = time()
 
-    obs = env.reset()
+    obs = env.reset(seed=args.seed)
     score = 0
     for t in range(1, args.max_timesteps+1):
         action = agent.act(obs)
@@ -86,7 +86,6 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    env.seed(args.seed)
     env.action_space.seed(args.seed)
 
     agent = DuelingDQNAgent(
