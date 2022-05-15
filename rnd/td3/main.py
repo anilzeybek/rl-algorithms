@@ -29,7 +29,7 @@ def get_args():
     parser.add_argument("--policy_noise", type=float, default=0.2)
     parser.add_argument("--noise_clip", type=float, default=0.5)
     parser.add_argument("--policy_freq", type=int, default=2)
-    parser.add_argument("--initial_normalization_episodes", type=int, default=100)
+    parser.add_argument("--initial_normalization_timesteps", type=int, default=100000)
 
     args = parser.parse_args()
     return args
@@ -59,6 +59,7 @@ def train(env, agent, args):
         agent.load()
 
     start = time()
+    c = 0
 
     obs_list = []
     obs = env.reset(seed=args.seed)
@@ -66,7 +67,10 @@ def train(env, agent, args):
         obs_list.append(obs)
         obs, _, done, _ = env.step(env.action_space.sample())
         if done:
+            c += 1
             obs = env.reset()
+
+    print(c)
 
     agent.obs_normalizer.update(np.array(obs_list))
 
