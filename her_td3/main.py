@@ -59,7 +59,7 @@ def train(env, agent, args):
 
     start = time()
 
-    env_dict = env.reset()
+    env_dict = env.reset(seed=args.seed)
     score = 0
     for t in range(1, args.max_timesteps+1):
         action = agent.act(env_dict["observation"], env_dict["desired_goal"])
@@ -90,7 +90,6 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    env.seed(args.seed)
     env.action_space.seed(args.seed)
 
     agent = HER_TD3Agent(
