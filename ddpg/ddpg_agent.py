@@ -8,6 +8,7 @@ import torch.optim as optim
 from cpprb import ReplayBuffer
 
 from models import Actor, Critic
+from normalizer import Normalizer
 
 
 class DDPGAgent:
@@ -49,6 +50,8 @@ class DDPGAgent:
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
+        self.normalizer = Normalizer(self.obs_dim)
+
         self.rb = ReplayBuffer(self.buffer_size, env_dict={
             "obs": {"shape": self.obs_dim},
             "action": {"shape": self.action_dim},
@@ -59,16 +62,17 @@ class DDPGAgent:
         self.t = 0
 
     def act(self, obs, train_mode=True):
+        normalized_obs = self.normalizer.normalize(obs)
         with torch.no_grad():
             if not train_mode:
-                action = self.actor(torch.Tensor(obs)).numpy()
+                action = self.actor(torch.Tensor(normalized_obs)).numpy()
             else:
                 if self.t < self.start_timesteps:
                     action = np.random.uniform(low=self.action_bounds['low'], high=self.action_bounds['high'],
                                                size=self.action_dim)
                 else:
                     action = (
-                        self.actor(torch.Tensor(obs)).numpy()
+                        self.actor(torch.Tensor(normalized_obs)).numpy()
                         + np.random.normal(0, self.max_action * self.expl_noise, size=self.action_dim)
                     )
 
@@ -78,6 +82,7 @@ class DDPGAgent:
     def step(self, obs, action, reward, next_obs, done):
         self.t += 1
         self.rb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, done=done)
+        self.normalizer.update(obs)
 
         if self.t >= self.start_timesteps:
             self._learn()
@@ -87,10 +92,16 @@ class DDPGAgent:
 
     def save(self):
         os.makedirs(f"checkpoints/ddpg/{self.env_name}", exist_ok=True)
-        torch.save({"actor": self.actor.state_dict(),
-                    "critic": self.critic.state_dict(),
-                    "t": self.t
-                    }, f"checkpoints/ddpg/{self.env_name}/actor_critic.pt")
+        torch.save({
+            "actor": self.actor.state_dict(),
+            "critic": self.critic.state_dict(),
+            "normalizer_mean": self.normalizer.mean,
+            "normalizer_std": self.normalizer.std,
+            "normalizer_running_sum": self.normalizer.running_sum,
+            "normalizer_running_sumsq": self.normalizer.running_sumsq,
+            "normalizer_running_count": self.normalizer.running_count,
+            "t": self.t
+        }, f"checkpoints/ddpg/{self.env_name}/actor_critic.pt")
 
     def load(self):
         checkpoint = torch.load(f"checkpoints/ddpg/{self.env_name}/actor_critic.pt")
@@ -100,6 +111,12 @@ class DDPGAgent:
 
         self.critic.load_state_dict(checkpoint["critic"])
         self.critic_target = deepcopy(self.critic)
+
+        self.normalizer.mean = checkpoint["normalizer_mean"]
+        self.normalizer.std = checkpoint["normalizer_std"]
+        self.normalizer.running_sum = checkpoint["normalizer_running_sum"]
+        self.normalizer.running_sumsq = checkpoint["normalizer_running_sumsq"]
+        self.normalizer.running_count = checkpoint["normalizer_running_count"]
 
         self.t = checkpoint["t"]
 
@@ -111,9 +128,12 @@ class DDPGAgent:
         next_obs = torch.Tensor(sample['next_obs'])
         done = torch.Tensor(sample['done'])
 
-        Q_current = self.critic(obs, action)
+        normalized_obs = self.normalizer.normalize(obs).float()
+        normalized_next_obs = self.normalizer.normalize(next_obs).float()
+
+        Q_current = self.critic(normalized_obs, action)
         with torch.no_grad():
-            Q_target_next = self.critic_target(next_obs, self.actor_target(next_obs))
+            Q_target_next = self.critic_target(normalized_next_obs, self.actor_target(normalized_next_obs))
             Q_target = reward + self.gamma * Q_target_next * (1 - done)
 
         critic_loss = F.mse_loss(Q_current, Q_target)
@@ -122,7 +142,7 @@ class DDPGAgent:
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        actor_loss = -self.critic(obs, self.actor(obs)).mean()
+        actor_loss = -self.critic(normalized_obs, self.actor(normalized_obs)).mean()
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()

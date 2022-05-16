@@ -11,7 +11,7 @@ from sac_agent import SACAgent
 
 def get_args():
     parser = argparse.ArgumentParser(description='options')
-    parser.add_argument('--env_name', type=str, default='LunarLanderContinuous-v2')
+    parser.add_argument('--env_name', type=str, default='HalfCheetah-v3')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--cont', default=False, action='store_true', help="use already saved policy in training")
     parser.add_argument('--seed', type=int, default=0)
@@ -30,23 +30,35 @@ def get_args():
     return args
 
 
+def eval_agent(env, agent, times=1, print_score=False, render=False):
+    scores = []
+
+    for _ in range(times):
+        obs = env.reset()
+        score = 0
+        done = False
+
+        while not done:
+            action = agent.act(obs, train_mode=False)
+            next_obs, reward, done, _ = env.step(action)
+            if render:
+                env.render()
+
+            obs = next_obs
+            score += reward
+
+        scores.append(score)
+        if print_score:
+            print(score)
+
+    return sum(scores) / len(scores)
+
+
 def test(env, agent):
     agent.load()
 
-    obs = env.reset()
-    score = 0
-    while True:
-        action = agent.act(obs, train_mode=False)
-        next_obs, reward, done, _ = env.step(action)
-        env.render()
-
-        obs = next_obs
-        score += reward
-
-        if done:
-            print(f'ep score: {score:.2f}')
-            obs = env.reset()
-            score = 0
+    score = eval_agent(env, agent, print_score=True, times=50)
+    print(score)
 
 
 def train(env, agent, args):
@@ -57,6 +69,7 @@ def train(env, agent, args):
 
     obs = env.reset(seed=args.seed)
     score = 0
+    best_eval_score = -9999
     for t in range(1, args.max_timesteps+1):
         action = agent.act(obs)
         next_obs, reward, done, _ = env.step(action)
@@ -70,13 +83,15 @@ def train(env, agent, args):
             obs = env.reset()
             score = 0
 
-        if t % (args.max_timesteps // 10) == 0:
-            agent.save()
+        if t % (args.max_timesteps // 10) == 0 or t == args.max_timesteps:
+            current_eval_score = eval_agent(env, agent, times=10)
+            if current_eval_score > best_eval_score:
+                best_eval_score = current_eval_score
+                print(f"checkpoint at t={t}, eval_score={current_eval_score}")
+                agent.save()
 
     end = time()
     print("training completed, elapsed time: ", end - start)
-
-    agent.save()
 
 
 def main():
