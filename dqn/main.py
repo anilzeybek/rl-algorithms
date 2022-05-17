@@ -1,6 +1,5 @@
 import argparse
 import random
-from time import time
 
 import gym
 import numpy as np
@@ -59,17 +58,26 @@ def test(env, agent):
     agent.load()
 
     score = eval_agent(env, agent, print_score=True, times=50)
-    print(score)
+    print(f"avt score: {score:.2f}")
+
+
+def try_checkpoint(env, agent, best_eval_score):
+    current_eval_score = eval_agent(env, agent, times=20)
+    if current_eval_score > best_eval_score:
+        best_eval_score = current_eval_score
+        print(f"checkpoint eval_score={current_eval_score:.2f}")
+        agent.save()
+
+    return best_eval_score
 
 
 def train(env, agent, args):
     if args.cont:
         agent.load()
 
-    start = time()
-
     obs = env.reset(seed=args.seed)
     score = 0
+    last_checkpoint_at = 0
     best_eval_score = -9999
     for t in range(1, args.max_timesteps+1):
         action = agent.act(obs)
@@ -81,18 +89,15 @@ def train(env, agent, args):
 
         if done:
             print(f'{t}/{args.max_timesteps} | ep score: {score:.2f}')
-            obs = env.reset()
+
+            if t - last_checkpoint_at > (args.max_timesteps // 10):
+                best_eval_score = try_checkpoint(env, agent, best_eval_score)
+                last_checkpoint_at = t
+
             score = 0
+            obs = env.reset()
 
-        if t % (args.max_timesteps // 10) == 0 or t == args.max_timesteps:
-            current_eval_score = eval_agent(env, agent, times=10)
-            if current_eval_score > best_eval_score:
-                best_eval_score = current_eval_score
-                print(f"checkpoint at t={t}, eval_score={current_eval_score}")
-                agent.save()
-
-    end = time()
-    print("training completed, elapsed time: ", end - start)
+    try_checkpoint(env, agent, best_eval_score)
 
 
 def main():

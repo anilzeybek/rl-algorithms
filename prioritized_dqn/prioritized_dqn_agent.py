@@ -7,6 +7,7 @@ import torch.optim as optim
 from cpprb import PrioritizedReplayBuffer
 
 from model import QNetwork
+from normalizer import Normalizer
 
 
 class PrioritizedDQNAgent:
@@ -14,13 +15,14 @@ class PrioritizedDQNAgent:
                  obs_dim,
                  action_dim,
                  env_name,
+                 start_timesteps,
                  buffer_size,
                  lr,
                  batch_size,
                  gamma,
                  tau,
-                 eps_start,
-                 eps_end,
+                 eps_init,
+                 eps_last,
                  eps_decay,
                  alpha,
                  beta):
@@ -28,13 +30,14 @@ class PrioritizedDQNAgent:
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.env_name = env_name
+        self.start_timesteps = start_timesteps
         self.buffer_size = buffer_size
         self.lr = lr
         self.batch_size = batch_size
         self.gamma = gamma
         self.tau = tau
-        self.eps_start = eps_start
-        self.eps_end = eps_end
+        self.eps = eps_init
+        self.eps_last = eps_last
         self.eps_decay = eps_decay
         self.alpha = alpha
         self.beta = beta
@@ -43,8 +46,8 @@ class PrioritizedDQNAgent:
         self.target_network = deepcopy(self.Q_network)
 
         self.optimizer = optim.Adam(self.Q_network.parameters(), lr=self.lr)
+        self.normalizer = Normalizer(self.obs_dim)
 
-        self.eps = self.eps_start
         self.prb = PrioritizedReplayBuffer(self.buffer_size, env_dict={
             "obs": {"shape": self.obs_dim},
             "action": {},
@@ -59,19 +62,20 @@ class PrioritizedDQNAgent:
         if train_mode and np.random.rand() < self.eps:
             return np.random.randint(self.action_dim)
         else:
-            obs = torch.from_numpy(obs).float().unsqueeze(0)
-            action_values = self.Q_network(obs)
+            normalized_obs = torch.Tensor(self.normalizer.normalize(obs))
+            action_values = self.Q_network(normalized_obs)
             return torch.argmax(action_values).item()
 
     def step(self, obs, action, reward, next_obs, done):
         self.t += 1
         self.prb.add(obs=obs, action=action, reward=reward, next_obs=next_obs, done=done)
+        self.normalizer.update(obs)
 
-        if self.t >= 10000:
+        if self.t >= self.start_timesteps:
             self._learn()
+            self.eps = max(self.eps_last, self.eps - self.eps_decay)
 
         if done:
-            self.eps = max(self.eps_end, self.eps_decay * self.eps)
             self.prb.on_episode_end()
 
     def save(self):
@@ -79,7 +83,13 @@ class PrioritizedDQNAgent:
         torch.save({
             "Q_network": self.Q_network.state_dict(),
             "eps": self.eps,
-            "beta": self.beta
+            "beta": self.beta,
+            "normalizer_mean": self.normalizer.mean,
+            "normalizer_std": self.normalizer.std,
+            "normalizer_running_sum": self.normalizer.running_sum,
+            "normalizer_running_sumsq": self.normalizer.running_sumsq,
+            "normalizer_running_count": self.normalizer.running_count,
+            "t": self.t
         }, f"checkpoints/prioritized_dqn/{self.env_name}/Q_network.pt")
 
     def load(self):
@@ -88,6 +98,13 @@ class PrioritizedDQNAgent:
         self.Q_network.load_state_dict(checkpoint["Q_network"])
         self.target_network = deepcopy(self.Q_network)
 
+        self.normalizer.mean = checkpoint["normalizer_mean"]
+        self.normalizer.std = checkpoint["normalizer_std"]
+        self.normalizer.running_sum = checkpoint["normalizer_running_sum"]
+        self.normalizer.running_sumsq = checkpoint["normalizer_running_sumsq"]
+        self.normalizer.running_count = checkpoint["normalizer_running_count"]
+
+        self.t = checkpoint["t"]
         self.eps = checkpoint["eps"]
         self.beta = checkpoint["beta"]
 
@@ -101,10 +118,13 @@ class PrioritizedDQNAgent:
         next_obs = torch.Tensor(sample['next_obs'])
         done = torch.Tensor(sample['done'])
 
-        Q_current = self.Q_network(obs).gather(1, action)
+        normalized_obs = self.normalizer.normalize(obs).float()
+        normalized_next_obs = self.normalizer.normalize(next_obs).float()
+
+        Q_current = self.Q_network(normalized_obs).gather(1, action)
         with torch.no_grad():
-            a = self.Q_network(next_obs).argmax(1).unsqueeze(1)
-            Q_target_next = self.target_network(next_obs).gather(1, a)
+            a = self.Q_network(normalized_next_obs).argmax(1).unsqueeze(1)
+            Q_target_next = self.target_network(normalized_next_obs).gather(1, a)
             Q_target = reward + self.gamma * Q_target_next * (1 - done)
 
             abs_td_error = (Q_target - Q_current).abs().numpy().squeeze()
@@ -114,6 +134,7 @@ class PrioritizedDQNAgent:
 
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.Q_network.parameters(), 10)
         self.optimizer.step()
 
         for param, target_param in zip(self.Q_network.parameters(), self.target_network.parameters()):

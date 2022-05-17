@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 
 from models import Actor, Critic
+from normalizer import Normalizer
 
 
 class PPOBuffer:
@@ -92,17 +93,21 @@ class PPOAgent:
         self.actor_optimizer = Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=critic_lr)
 
+        self.normalizer = Normalizer(self.obs_dim)
         self.buffer = PPOBuffer(gamma, gae_lambda)
 
     def act(self, obs):
-        return self.actor(torch.from_numpy(obs))[0]
+        normalized_obs = self.normalizer.normalize(obs)
+        return self.actor(torch.Tensor(normalized_obs))[0]
 
     def step(self, obs, action, reward, done):
+        normalized_obs = self.normalizer.normalize(obs)
         with torch.no_grad():
-            _, log_prob = self.actor(torch.from_numpy(obs), torch.from_numpy(action))
-            value = self.critic(torch.from_numpy(obs)).item()
+            _, log_prob = self.actor(torch.Tensor(normalized_obs), torch.from_numpy(action))
+            value = self.critic(torch.Tensor(normalized_obs)).item()
 
         self.buffer.store(obs, action, reward, value, log_prob)
+        self.normalizer.update(obs)
 
         if done:
             self.buffer.end_of_episode()
@@ -110,23 +115,37 @@ class PPOAgent:
 
     def save(self):
         os.makedirs(f"checkpoints/ppo/{self.env_name}", exist_ok=True)
-        torch.save({"actor": self.actor.state_dict(),
-                    "critic": self.critic.state_dict()},
-                   f"checkpoints/ppo/{self.env_name}/actor_critic.pt")
+        torch.save({
+            "actor": self.actor.state_dict(),
+            "critic": self.critic.state_dict(),
+            "normalizer_mean": self.normalizer.mean,
+            "normalizer_std": self.normalizer.std,
+            "normalizer_running_sum": self.normalizer.running_sum,
+            "normalizer_running_sumsq": self.normalizer.running_sumsq,
+            "normalizer_running_count": self.normalizer.running_count,
+        }, f"checkpoints/ppo/{self.env_name}/actor_critic.pt")
 
     def load(self):
         checkpoint = torch.load(f"checkpoints/ppo/{self.env_name}/actor_critic.pt")
         self.actor.load_state_dict(checkpoint["actor"])
         self.critic.load_state_dict(checkpoint["critic"])
 
+        self.normalizer.mean = checkpoint["normalizer_mean"]
+        self.normalizer.std = checkpoint["normalizer_std"]
+        self.normalizer.running_sum = checkpoint["normalizer_running_sum"]
+        self.normalizer.running_sumsq = checkpoint["normalizer_running_sumsq"]
+        self.normalizer.running_count = checkpoint["normalizer_running_count"]
+
     def _learn(self):
         data = self.buffer.get()
         obs, action, advantage, ret, old_log_prob = data['obs'], data['action'], data['advantage'], data['ret'], data['log_prob']
 
+        normalized_obs = self.normalizer.normalize(obs).float()
+
         for _ in range(self.train_actor_iters):
             self.actor_optimizer.zero_grad()
 
-            log_prob = self.actor(obs, action)[1]
+            log_prob = self.actor(normalized_obs, action)[1]
             ratio = torch.exp(log_prob - old_log_prob)
             clipped_adv = torch.clamp(ratio, 1-self.clip_ratio, 1+self.clip_ratio) * advantage
             actor_loss = -(torch.min(ratio*advantage, clipped_adv)).mean()
@@ -142,7 +161,7 @@ class PPOAgent:
         for _ in range(self.train_critic_iters):
             self.critic_optimizer.zero_grad()
 
-            critic_loss = F.mse_loss(self.critic(obs), ret)
+            critic_loss = F.mse_loss(self.critic(normalized_obs), ret)
             critic_loss.backward()
 
             self.critic_optimizer.step()

@@ -8,11 +8,11 @@ class Actor(nn.Module):
         self.max_action = max_action
 
         self.net = nn.Sequential(
-            nn.Linear(obs_dim, 256),
+            nn.Linear(obs_dim, 64),
             nn.ReLU(),
-            nn.Linear(256, 256),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(256, action_dim),
+            nn.Linear(64, action_dim),
             nn.Tanh()
         )
 
@@ -26,18 +26,18 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
 
         self.net1 = nn.Sequential(
-            nn.Linear(obs_dim + action_dim, 256),
+            nn.Linear(obs_dim + action_dim, 64),
             nn.ReLU(),
-            nn.Linear(256, 256),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(256, 1),
+            nn.Linear(64, 1),
         )
         self.net2 = nn.Sequential(
-            nn.Linear(obs_dim + action_dim, 256),
+            nn.Linear(obs_dim + action_dim, 64),
             nn.ReLU(),
-            nn.Linear(256, 256),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(256, 1),
+            nn.Linear(64, 1),
         )
 
     def forward(self, obs, action):
@@ -54,11 +54,11 @@ class RandomScalarNetwork(nn.Module):
         super(RandomScalarNetwork, self).__init__()
 
         self.net = nn.Sequential(
-            nn.Linear(obs_dim, 256),
+            nn.Linear(obs_dim, 64),
             nn.ReLU(),
-            nn.Linear(256, 256),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(256, 1),
+            nn.Linear(64, 1),
         )
 
     def forward(self, obs):
