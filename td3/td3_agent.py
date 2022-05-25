@@ -7,12 +7,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from cpprb import ReplayBuffer
 
-from models import Actor, Critic
-
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from common.normalizer import Normalizer
+from common.models import Actor, TwinQNetwork
 
 
 class TD3Agent:
@@ -54,7 +53,7 @@ class TD3Agent:
         self.actor = Actor(obs_dim, action_dim, self.max_action)
         self.actor_target = deepcopy(self.actor)
 
-        self.critic = Critic(obs_dim, action_dim)
+        self.critic = TwinQNetwork(obs_dim, action_dim)
         self.critic_target = deepcopy(self.critic)
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)

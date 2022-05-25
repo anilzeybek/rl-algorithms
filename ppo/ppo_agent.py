@@ -5,13 +5,11 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from models import Actor, Critic
-
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from common.normalizer import Normalizer
-
+from common.models import LogProbActor, VNetwork
 
 
 class PPOBuffer:
@@ -51,11 +49,11 @@ class PPOBuffer:
 
         self.advantage_buffer = np.zeros_like(deltas)
         for i, delta in enumerate(reversed(deltas)):
-            self.advantage_buffer[-(i+1)] = delta * self.gamma * self.gae_lambda
+            self.advantage_buffer[-(i + 1)] = delta * self.gamma * self.gae_lambda
 
         self.ret_buffer = np.zeros_like(self.reward_buffer)
         for i, r in enumerate(reversed(self.reward_buffer)):
-            self.ret_buffer[-(i+1)] = r + self.gamma * self.ret_buffer[-i]
+            self.ret_buffer[-(i + 1)] = r + self.gamma * self.ret_buffer[-i]
 
         self.ret_buffer = np.expand_dims(self.ret_buffer, axis=1)
 
@@ -92,8 +90,8 @@ class PPOAgent:
         self.train_actor_iters = train_actor_iters
         self.train_critic_iters = train_critic_iters
 
-        self.actor = Actor(obs_dim, action_dim)
-        self.critic = Critic(obs_dim)
+        self.actor = LogProbActor(obs_dim, action_dim)
+        self.critic = VNetwork(obs_dim)
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=critic_lr)
@@ -152,8 +150,8 @@ class PPOAgent:
 
             log_prob = self.actor(normalized_obs, action)[1]
             ratio = torch.exp(log_prob - old_log_prob)
-            clipped_adv = torch.clamp(ratio, 1-self.clip_ratio, 1+self.clip_ratio) * advantage
-            actor_loss = -(torch.min(ratio*advantage, clipped_adv)).mean()
+            clipped_adv = torch.clamp(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * advantage
+            actor_loss = -(torch.min(ratio * advantage, clipped_adv)).mean()
 
             with torch.no_grad():
                 kl = (old_log_prob - log_prob).mean().item()

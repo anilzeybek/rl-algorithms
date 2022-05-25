@@ -6,13 +6,11 @@ import torch
 import torch.optim as optim
 from cpprb import PrioritizedReplayBuffer
 
-from model import QNetwork
-
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from common.normalizer import Normalizer
-
+from common.models import DiscreteQNetwork
 
 
 class PrioritizedDQNAgent:
@@ -47,7 +45,7 @@ class PrioritizedDQNAgent:
         self.alpha = alpha
         self.beta = beta
 
-        self.Q_network = QNetwork(obs_dim, action_dim)
+        self.Q_network = DiscreteQNetwork(obs_dim, action_dim)
         self.target_network = deepcopy(self.Q_network)
 
         self.optimizer = optim.Adam(self.Q_network.parameters(), lr=self.lr)

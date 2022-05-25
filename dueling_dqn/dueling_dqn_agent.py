@@ -7,13 +7,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from cpprb import ReplayBuffer
 
-from model import DuelingNetwork
-
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from common.normalizer import Normalizer
-
+from common.models import DuelingQNetwork
 
 
 class DuelingDQNAgent:
@@ -44,7 +42,7 @@ class DuelingDQNAgent:
         self.eps_last = eps_last
         self.eps_decay = eps_decay
 
-        self.dueling_network = DuelingNetwork(obs_dim, action_dim)
+        self.dueling_network = DuelingQNetwork(obs_dim, action_dim)
         self.target_network = deepcopy(self.dueling_network)
 
         self.optimizer = optim.Adam(self.dueling_network.parameters(), lr=self.lr)

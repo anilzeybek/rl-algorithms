@@ -7,13 +7,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from cpprb import ReplayBuffer
 
-from model import QNetwork
-
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from common.normalizer import Normalizer
-
+from common.models import DiscreteQNetwork
 
 
 class DQNAgent:
@@ -44,7 +42,7 @@ class DQNAgent:
         self.eps_last = eps_last
         self.eps_decay = eps_decay
 
-        self.Q_network = QNetwork(obs_dim, action_dim)
+        self.Q_network = DiscreteQNetwork(obs_dim, action_dim)
         self.target_network = deepcopy(self.Q_network)
 
         self.optimizer = optim.Adam(self.Q_network.parameters(), lr=self.lr)

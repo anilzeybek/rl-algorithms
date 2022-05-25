@@ -5,12 +5,11 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from models import Actor, Critic
-
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from common.normalizer import Normalizer
+from common.models import LogProbActor, VNetwork
 
 
 class VPGBuffer:
@@ -82,8 +81,8 @@ class VPGAgent:
         self.gamma = gamma
         self.train_critic_iters = train_critic_iters
 
-        self.actor = Actor(obs_dim, action_dim)
-        self.critic = Critic(obs_dim)
+        self.actor = LogProbActor(obs_dim, action_dim)
+        self.critic = VNetwork(obs_dim)
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=critic_lr)
