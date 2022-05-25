@@ -103,7 +103,7 @@ class PPOAgent:
         normalized_obs = self.normalizer.normalize(obs)
         return self.actor(torch.Tensor(normalized_obs))[0]
 
-    def step(self, obs, action, reward, done):
+    def step(self, obs, action, reward, _, done):
         normalized_obs = self.normalizer.normalize(obs)
         with torch.no_grad():
             _, log_prob = self.actor(torch.Tensor(normalized_obs), torch.from_numpy(action))

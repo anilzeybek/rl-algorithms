@@ -94,7 +94,7 @@ class VPGAgent:
         normalized_obs = self.normalizer.normalize(obs)
         return self.actor(torch.from_numpy(normalized_obs))[0]
 
-    def step(self, obs, action, reward, done):
+    def step(self, obs, action, reward, _, done):
         self.buffer.store(obs, action, reward, self.critic(torch.from_numpy(self.normalizer.normalize(obs))).item())
         self.normalizer.update(obs)
 

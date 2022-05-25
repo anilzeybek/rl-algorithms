@@ -37,3 +37,32 @@ def try_checkpoint(env, agent, best_eval_score):
         agent.save()
 
     return best_eval_score
+
+
+def train(env, agent, args):
+    if args.cont:
+        agent.load()
+
+    obs = env.reset(seed=args.seed)
+    score = 0
+    last_checkpoint_at = 0
+    best_eval_score = -9999
+    for t in range(1, args.max_timesteps + 1):
+        action = agent.act(obs)
+        next_obs, reward, done, _ = env.step(action)
+
+        agent.step(obs, action, reward, next_obs, done)
+        obs = next_obs
+        score += reward
+
+        if done:
+            print(f'{t}/{args.max_timesteps} | ep score: {score:.2f}')
+
+            if t - last_checkpoint_at > (args.max_timesteps // 10):
+                best_eval_score = try_checkpoint(env, agent, best_eval_score)
+                last_checkpoint_at = t
+
+            score = 0
+            obs = env.reset()
+
+    try_checkpoint(env, agent, best_eval_score)
