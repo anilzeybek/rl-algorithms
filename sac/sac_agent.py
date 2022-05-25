@@ -8,7 +8,12 @@ import torch.optim as optim
 from cpprb import ReplayBuffer
 
 from models import Actor, Critic
-from normalizer import Normalizer
+
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from common.normalizer import Normalizer
+
 
 
 class SACAgent:

@@ -8,7 +8,12 @@ import torch.optim as optim
 from cpprb import ReplayBuffer
 
 from model import QNetwork
-from normalizer import Normalizer
+
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from common.normalizer import Normalizer
+
 
 
 class DQNAgent:

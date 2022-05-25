@@ -6,7 +6,12 @@ import torch.nn.functional as F
 from torch.optim import Adam
 
 from models import Actor, Critic
-from normalizer import Normalizer
+
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from common.normalizer import Normalizer
+
 
 
 class PPOBuffer:

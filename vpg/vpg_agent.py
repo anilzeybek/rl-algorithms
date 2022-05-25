@@ -6,7 +6,11 @@ import torch.nn.functional as F
 from torch.optim import Adam
 
 from models import Actor, Critic
-from normalizer import Normalizer
+
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from common.normalizer import Normalizer
 
 
 class VPGBuffer:
@@ -43,11 +47,11 @@ class VPGBuffer:
 
         self.advantage_buffer = np.zeros_like(deltas)
         for i, delta in enumerate(reversed(deltas)):
-            self.advantage_buffer[-(i+1)] = delta * self.gamma * self.gae_lambda
+            self.advantage_buffer[-(i + 1)] = delta * self.gamma * self.gae_lambda
 
         self.ret_buffer = np.zeros_like(self.reward_buffer)
         for i, r in enumerate(reversed(self.reward_buffer)):
-            self.ret_buffer[-(i+1)] = r + self.gamma * self.ret_buffer[-i]
+            self.ret_buffer[-(i + 1)] = r + self.gamma * self.ret_buffer[-i]
 
         self.ret_buffer = np.expand_dims(self.ret_buffer, axis=1)
 
