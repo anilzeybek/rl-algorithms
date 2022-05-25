@@ -1,12 +1,17 @@
 import argparse
+import os
 import random
-from time import time
 
 import gym
 import numpy as np
 import torch
 
 from prioritized_dqn_agent import PrioritizedDQNAgent
+
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from common.utils import test, try_checkpoint
 
 
 def get_args():
@@ -33,47 +38,15 @@ def get_args():
     return args
 
 
-def eval_agent(env, agent, times=1, print_score=False, render=False):
-    scores = []
-
-    for _ in range(times):
-        obs = env.reset()
-        score = 0
-        done = False
-
-        while not done:
-            action = agent.act(obs, train_mode=False)
-            next_obs, reward, done, _ = env.step(action)
-            if render:
-                env.render()
-
-            obs = next_obs
-            score += reward
-
-        scores.append(score)
-        if print_score:
-            print(score)
-
-    return sum(scores) / len(scores)
-
-
-def test(env, agent):
-    agent.load()
-
-    score = eval_agent(env, agent, print_score=True, times=50)
-    print(score)
-
-
 def train(env, agent, args):
     if args.cont:
         agent.load()
 
-    start = time()
-
     obs = env.reset(seed=args.seed)
     score = 0
+    last_checkpoint_at = 0
     best_eval_score = -9999
-    for t in range(1, args.max_timesteps+1):
+    for t in range(1, args.max_timesteps + 1):
         action = agent.act(obs)
         next_obs, reward, done, _ = env.step(action)
 
@@ -83,18 +56,15 @@ def train(env, agent, args):
 
         if done:
             print(f'{t}/{args.max_timesteps} | ep score: {score:.2f}')
-            obs = env.reset()
+
+            if t - last_checkpoint_at > (args.max_timesteps // 10):
+                best_eval_score = try_checkpoint(env, agent, best_eval_score)
+                last_checkpoint_at = t
+
             score = 0
+            obs = env.reset()
 
-        if t % (args.max_timesteps // 10) == 0 or t == args.max_timesteps:
-            current_eval_score = eval_agent(env, agent, times=10)
-            if current_eval_score > best_eval_score:
-                best_eval_score = current_eval_score
-                print(f"checkpoint at t={t}, eval_score={current_eval_score}")
-                agent.save()
-
-    end = time()
-    print("training completed, elapsed time: ", end - start)
+    try_checkpoint(env, agent, best_eval_score)
 
 
 def main():

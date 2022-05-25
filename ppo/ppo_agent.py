@@ -99,7 +99,7 @@ class PPOAgent:
         self.normalizer = Normalizer(self.obs_dim)
         self.buffer = PPOBuffer(gamma, gae_lambda)
 
-    def act(self, obs):
+    def act(self, obs, **_):
         normalized_obs = self.normalizer.normalize(obs)
         return self.actor(torch.Tensor(normalized_obs))[0]
 

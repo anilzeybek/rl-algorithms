@@ -90,7 +90,7 @@ class VPGAgent:
         self.normalizer = Normalizer(self.obs_dim)
         self.buffer = VPGBuffer(gamma, gae_lambda)
 
-    def act(self, obs):
+    def act(self, obs, **_):
         normalized_obs = self.normalizer.normalize(obs)
         return self.actor(torch.from_numpy(normalized_obs))[0]
 
