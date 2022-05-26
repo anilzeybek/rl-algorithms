@@ -24,10 +24,7 @@ def get_args():
 
     parser.add_argument("--max_timesteps", type=int, default=int(6e+5))
     parser.add_argument("--actor_lr", type=float, default=1e-3)
-    parser.add_argument("--critic_lr", type=float, default=1e-3)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--gae_lambda", type=float, default=0.97)
-    parser.add_argument("--train_critic_iters", type=int, default=80)
 
     args = parser.parse_args()
     return args
@@ -47,10 +44,7 @@ def main():
         action_dim=env.action_space.n,
         env_name=args.env_name,
         actor_lr=args.actor_lr,
-        critic_lr=args.critic_lr,
         gamma=args.gamma,
-        gae_lambda=args.gae_lambda,
-        train_critic_iters=args.train_critic_iters
     )
 
     if args.test:

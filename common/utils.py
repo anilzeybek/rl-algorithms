@@ -25,8 +25,8 @@ def eval_agent(env, agent, times=1, print_score=False, render=False):
 def test(env, agent):
     agent.load()
 
-    score = eval_agent(env, agent, print_score=True, times=50)
-    print(f"avt score: {score:.2f}")
+    score = eval_agent(env, agent, print_score=True, times=50, render=True)
+    print(f"avg score: {score:.2f}")
 
 
 def try_checkpoint(env, agent, best_eval_score):
