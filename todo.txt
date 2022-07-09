@@ -1,8 +1,11 @@
+- my implementation of ppo
+- a2c
+
 - prioritized dqn seems to work not that good, check it out
 
-- "if done:" can be problematic since we use real_done for it (maybe store from main?)
-
 - better readme
+
+- add cnn models
 
 - implement:
     [x] vpg
