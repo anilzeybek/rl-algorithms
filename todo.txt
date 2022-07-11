@@ -1,3 +1,6 @@
+- update to gym 0.24
+- baseline check for each env
+
 - my implementation of ppo
 - a2c
 
